@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <application
+        android:allowBackup="false"
+        android:icon="@android:drawable/ic_media_play"
+        android:label="@string/app_name">
+
+        <!-- Exported Bitperfect Source Plugin Service -->
+        <service
+            android:name=".NetworkSourcePlugin"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.bitperfect.plugin.BIND_PLUGIN" />
+            </intent-filter>
+
+            <!-- 1. Unique plugin identifier: MUST strictly match the APK applicationId -->
+            <meta-data
+                android:name="com.bitperfect.plugin.PLUGIN_ID"
+                android:value="com.example.bitperfect.plugin.networksource" />
+
+            <!-- 2. Capabilities bitmask: SOURCE (1) | PAGES (256) = 257 -->
+            <meta-data
+                android:name="com.bitperfect.plugin.CAPABILITIES"
+                android:value="257" />
+
+            <!-- 3. Minimum supported host API level (6 for latest features) -->
+            <meta-data
+                android:name="com.bitperfect.plugin.MIN_HOST_API"
+                android:value="6" />
+
+            <!-- 4. Navigation integration into host sidebar -->
+            <meta-data
+                android:name="com.bitperfect.plugin.NAVIGATION_EXTENSION_ID"
+                android:value="open_audio_catalog" />
+            <meta-data
+                android:name="com.bitperfect.plugin.NAVIGATION_TARGET"
+                android:value="sidebar" />
+            <meta-data
+                android:name="com.bitperfect.plugin.NAVIGATION_LABEL"
+                android:value="@string/plugin_label" />
+            <meta-data
+                android:name="com.bitperfect.plugin.NAVIGATION_ROUTE"
+                android:value="catalog" />
+            <meta-data
+                android:name="com.bitperfect.plugin.NAVIGATION_ORDER"
+                android:value="15" />
+
+            <!-- 5. Settings screen route (Pages API v1) -->
+            <meta-data
+                android:name="com.bitperfect.plugin.SETTINGS_ROUTE"
+                android:value="settings" />
+        </service>
+
+    </application>
+</manifest>

@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application
+        android:allowBackup="false"
+        android:icon="@android:drawable/ic_lock_silent_mode_off"
+        android:label="@string/app_name">
+
+        <!-- Exported Bitperfect DSP Plugin Service -->
+        <service
+            android:name=".DspFilterPlugin"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.bitperfect.plugin.BIND_PLUGIN" />
+            </intent-filter>
+
+            <!-- 1. Unique plugin identifier: MUST strictly match the APK applicationId -->
+            <meta-data
+                android:name="com.bitperfect.plugin.PLUGIN_ID"
+                android:value="com.example.bitperfect.plugin.dspfilter" />
+
+            <!-- 2. Capabilities bitmask: DSP (512) | PAGES (256) = 768 -->
+            <meta-data
+                android:name="com.bitperfect.plugin.CAPABILITIES"
+                android:value="768" />
+
+            <!-- 3. Minimum supported host API level (6 for latest features) -->
+            <meta-data
+                android:name="com.bitperfect.plugin.MIN_HOST_API"
+                android:value="6" />
+
+            <!-- 4. Navigation entry inside player settings -->
+            <meta-data
+                android:name="com.bitperfect.plugin.NAVIGATION_EXTENSION_ID"
+                android:value="dsp_filter_nav" />
+            <meta-data
+                android:name="com.bitperfect.plugin.NAVIGATION_TARGET"
+                android:value="settings" />
+            <meta-data
+                android:name="com.bitperfect.plugin.NAVIGATION_LABEL"
+                android:value="@string/dsp_plugin_label" />
+            <meta-data
+                android:name="com.bitperfect.plugin.NAVIGATION_ROUTE"
+                android:value="dsp_settings" />
+            <meta-data
+                android:name="com.bitperfect.plugin.NAVIGATION_ORDER"
+                android:value="20" />
+
+            <!-- 5. Settings screen route (Pages API v1) -->
+            <meta-data
+                android:name="com.bitperfect.plugin.SETTINGS_ROUTE"
+                android:value="dsp_settings" />
+        </service>
+
+    </application>
+</manifest>

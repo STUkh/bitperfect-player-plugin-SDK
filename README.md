@@ -24,7 +24,11 @@ bitperfect-player-plugin-sdk/
 ├── plugin-aidl/                 # AIDL interfaces (IBitperfectPluginV1) & Parcelable DTOs
 ├── plugin-pages/                # Kotlin models & parser for Server-Driven UI (Pages API v1)
 ├── plugin-runtime/              # Base services (BitperfectSourcePlugin, BitperfectDspPlugin) & trust guards
-├── sample-plugin/               # Fully buildable, runnable sample Android plugin app
+├── sample-plugin/               # Basic buildable sample plugin app
+├── sample-network-source/       # Legal open-source streaming source (FLAC/MP3, SDUI, search, tabs)
+├── sample-dsp-filter/           # Audiophile DSP filter (SharedMemory zero-copy ring, eventfd, SLIDER/SWITCH)
+├── skills/                      # AI assistant skills (skills.sh, Claude, Cursor, Windsurf)
+│   └── bitperfect-plugin-dev/   # Complete plugin dev skill playbook
 ├── docs/                        # In-depth technical guides
 │   ├── naming-and-discovery.md  # Critical package naming & manifest discovery rules
 │   ├── pages-sdui-guide.md      # Server-Driven UI, 120 FPS controls, SWITCH, SLIDER
@@ -124,7 +128,7 @@ The output AARs will be located at:
 * 📖 [Plugin Naming, Manifest & Discovery Guide](docs/naming-and-discovery.md)
 * 🎨 [Server-Driven UI (Pages API v1) Guide](docs/pages-sdui-guide.md)
 * 🎛️ [DSP Audio Processing via SharedMemory](docs/dsp-audio-processing.md)
-
+* 🤖 [AI Coding Assistant Skill (skills.sh / Cursor / Claude)](docs/ai-plugin-dev-skill.md)
 ---
 
 ## 8. License
