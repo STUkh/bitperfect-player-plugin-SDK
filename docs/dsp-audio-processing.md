@@ -10,9 +10,26 @@ Android's Binder IPC has a global 1 MiB transaction buffer per process. Streamin
 
 To achieve bit-perfect real-time audio processing without compromising stability:
 * **Zero PCM over Binder**: Audio samples are never transferred inside Binder IPC payloads.
-* **Linux SharedMemory (Ashmem) Ring Buffers**: Audio frames are mapped into shared memory ring buffers accessible by both the Bitperfect host and the plugin process.
+* **Linux SharedMemory (Ashmem) Ring Buffers**: Audio frames are mapped into shared memory ring buffers preceded by a 64-byte atomic control header (`DspSharedHeader`).
 * **Low-Latency Signaling (`eventfd`)**: Synchronization between the player audio engine and the plugin occurs via Linux event file descriptors (`eventfd`), bypassing the Android framework overhead.
 * **Strict Real-Time Deadline**: DSP stages must process frames within **2.0 milliseconds** to prevent hardware buffer underruns.
+
+### Transport Control Header (64 Bytes)
+Both input and output shared memory regions are mapped `READ_WRITE` with a 64-byte atomic header at offset 0:
+```
+Offset 0:  magic (u32, 0x42504453 "BPDS")
+Offset 4:  version (u32, 1)
+Offset 8:  epoch (u64)
+Offset 16: write_pos (u64)
+Offset 24: read_pos (u64)
+Offset 32: flags (u32, 1=ACTIVE, 2=BYPASS, 4=ERROR)
+Offset 36: xruns (u32)
+Offset 40..63: padding (24 bytes)
+Offset 64+: PCM Float32 audio frame buffer
+```
+- Input buffer: Host acts as producer (increments `write_pos`), Plugin acts as consumer (advances `read_pos`).
+- Output buffer: Plugin acts as producer (increments `write_pos`), Host acts as consumer (advances `read_pos`).
+- Audio frame position: `64 + (frame_pos % capacityFrames) * channels * 4` bytes.
 
 ---
 

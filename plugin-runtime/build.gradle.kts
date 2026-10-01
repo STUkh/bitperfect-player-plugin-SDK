@@ -35,7 +35,7 @@ android {
 }
 
 dependencies {
-    implementation(project(":plugin-aidl"))
+    api(project(":plugin-aidl"))
     api(project(":plugin-pages"))
     testImplementation(libs.junit5)
     testImplementation(libs.mockk)

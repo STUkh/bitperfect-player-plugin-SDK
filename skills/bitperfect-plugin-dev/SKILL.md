@@ -20,7 +20,7 @@ Reference Guides:
 - **No Elevated Permissions**: Plugins execute under their own Linux UID and request only required Android permissions (e.g. `android.permission.INTERNET`). Host grants zero permissions.
 - **Dark-Only Theme**: Host UI renders strictly using Bitperfect Flat-Dark design system tokens (no light theme, glass, or neon glows).
 - **Capability Gating**: Host invokes only AIDL methods declared in `com.bitperfect.plugin.CAPABILITIES`.
-
+- **Trust & Signing Verification**: Official releases verify official release signing certificates. In debug/development mode, the host permits debug keystores or user explicit confirmation in **Settings → Plugins**.
 ---
 
 ## 2. Capabilities Reference (Host API v6)
@@ -30,7 +30,7 @@ Reference Guides:
 | `CAPABILITY_SOURCE` | `1 << 0` | `1` | Stream resolution, catalog browse, search. |
 | `CAPABILITY_METADATA` | `1 << 1` | `2` | Supplementary metadata (lyrics, credits). |
 | `CAPABILITY_OUTPUT_RENDERER` | `1 << 2` | `4` | External output target (UPnP, DLNA, Cast). |
-| `CAPABILITY_UI_TABS` | `1 << 3` | `8` | Sidebar navigation linking to plugin Activity. |
+| `CAPABILITY_UI_TABS` | `1 << 3` | `8` | Sidebar navigation linking to plugin Activity or page route. **Required** when declaring sidebar navigation. |
 | `CAPABILITY_NOW_PLAYING_EXT` | `1 << 4` | `16` | RemoteViews card in Now Playing screen. |
 | `CAPABILITY_SETTINGS` | `1 << 5` | `32` | Settings sub-screen deep-linking to plugin Activity. |
 | `CAPABILITY_AUTH` | `1 << 6` | `64` | Access to host credential callbacks (deprecated; use local secure storage). |
@@ -60,10 +60,10 @@ Reference Guides:
             <meta-data
                 android:name="com.bitperfect.plugin.PLUGIN_ID"
                 android:value="com.example.bitperfect.plugin.mysource" />
-            <!-- SOURCE (1) | PAGES (256) = 257 -->
+            <!-- SOURCE (1) | UI_TABS (8) | PAGES (256) = 265 (Sidebar navigation requires UI_TABS) -->
             <meta-data
                 android:name="com.bitperfect.plugin.CAPABILITIES"
-                android:value="257" />
+                android:value="265" />
             <meta-data
                 android:name="com.bitperfect.plugin.MIN_HOST_API"
                 android:value="6" />
@@ -95,7 +95,7 @@ Reference Guides:
 ```kotlin
 class MySourcePlugin : BitperfectSourcePlugin() {
     override fun capabilities(): Int =
-        PluginSdk.CAPABILITY_SOURCE or PluginSdk.CAPABILITY_PAGES
+        PluginSdk.CAPABILITY_SOURCE or PluginSdk.CAPABILITY_UI_TABS or PluginSdk.CAPABILITY_PAGES
 
     override fun onResolveStream(
         track: TrackRefDto,
@@ -118,35 +118,60 @@ class MySourcePlugin : BitperfectSourcePlugin() {
     )
 
     override fun onDispatchAction(actionId: String, paramsJson: String?): ActionResultDto =
-        ActionResultDto(ActionResultDto.KIND_NONE, "{}")
-}
+        ActionResultDto(ActionResultDto.KIND_TOAST, """{"text":"Action completed"}""")
 ```
 
 ### DSP Audio Filter (`BitperfectDspPlugin`)
 
-**Process** frames via Linux `SharedMemory` ring buffer within a 2.0 ms deadline:
+**Process** frames via Linux `SharedMemory` ring buffer within a 2.0 ms deadline using the 64-byte `DspSharedHeader`:
 
 ```kotlin
-// Map memory zero-copy via FileChannel
-val bytes = (offer.capacityFrames * offer.format.channels * 4).toLong()
-val inMapped = FileInputStream(offer.shmemInFd.fileDescriptor).channel
-    .map(FileChannel.MapMode.READ_ONLY, 0, bytes).order(ByteOrder.nativeOrder())
-val outMapped = FileOutputStream(offer.shmemOutFd.fileDescriptor).channel
-    .map(FileChannel.MapMode.READ_WRITE, 0, bytes).order(ByteOrder.nativeOrder())
+companion object {
+    const val HEADER_SIZE_BYTES = 64L
+    const val OFFSET_WRITE_POS = 16
+    const val OFFSET_READ_POS = 24
+}
 
+// Map total region = 64-byte header + ring buffer frames
+val totalBytes = HEADER_SIZE_BYTES + (offer.capacityFrames * offer.format.channels * 4).toLong()
+// Both input and output mapped READ_WRITE (plugin updates read_pos in input, write_pos in output)
+val inMapped = ParcelFileDescriptor.AutoCloseInputStream(offer.shmemInFd).channel
+    .map(FileChannel.MapMode.READ_WRITE, 0, totalBytes).order(ByteOrder.nativeOrder())
+val outMapped = ParcelFileDescriptor.AutoCloseOutputStream(offer.shmemOutFd).channel
+    .map(FileChannel.MapMode.READ_WRITE, 0, totalBytes).order(ByteOrder.nativeOrder())
+
+val eventFdBuf = ByteBuffer.allocateDirect(8).order(ByteOrder.nativeOrder())
 val pollFd = StructPollfd().apply {
     fd = offer.notifyInFd.fileDescriptor
     events = OsConstants.POLLIN.toShort()
 }
 
 while (!isClosed.get()) {
-    if (Os.poll(arrayOf(pollFd), 2) > 0) { // 2.0 ms deadline
-        drainEventFd(offer.notifyInFd.fileDescriptor)
-        dspEngine.process(inMapped.asFloatBuffer(), outMapped.asFloatBuffer())
-        signalEventFd(offer.notifyOutFd.fileDescriptor)
+    val pollRes = Os.poll(arrayOf(pollFd), 2) // 2.0 ms deadline
+    if (pollRes > 0) {
+        if ((pollFd.revents.toInt() and (OsConstants.POLLERR or OsConstants.POLLHUP)) != 0) break
+        if ((pollFd.revents.toInt() and OsConstants.POLLIN) != 0) {
+            eventFdBuf.clear(); Os.read(offer.notifyInFd.fileDescriptor, eventFdBuf)
+            val inReadPos = inMapped.getLong(OFFSET_READ_POS)
+            val inWritePos = inMapped.getLong(OFFSET_WRITE_POS)
+            val frames = (inWritePos - inReadPos).toInt().coerceAtMost(offer.chunkFrames)
+            if (frames > 0) {
+                // Read audio from 64 + (inReadPos % capacity) * channels * 4
+                // Process DSP, write to output at 64 + (outWritePos % capacity) * channels * 4
+                inMapped.putLong(OFFSET_READ_POS, inReadPos + frames)
+                outMapped.putLong(OFFSET_WRITE_POS, outWritePos + frames)
+            }
+            eventFdBuf.clear(); eventFdBuf.putLong(1L).flip()
+            Os.write(offer.notifyOutFd.fileDescriptor, eventFdBuf)
+        }
     }
 }
 ```
+
+### Server-Driven UI Latency Shield
+- `SLIDER`: Host maintains 120 FPS local gesture state on the UI thread without Binder IPC during drag; `onDispatchAction` is dispatched with `{"value": "..."}` **only on touch release**.
+- `SWITCH`: Renders `enabled` boolean state and dispatches state toggle with `{"checked": "true"|"false"}`.
+- `TOAST`: Expected response payload schema is `{"text": "..."}`.
 
 ---
 

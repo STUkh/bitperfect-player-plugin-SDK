@@ -34,7 +34,7 @@ class NetworkSourcePlugin : BitperfectSourcePlugin() {
     private val favoriteStationIds = mutableSetOf<String>()
 
     override fun capabilities(): Int =
-        PluginSdk.CAPABILITY_SOURCE or PluginSdk.CAPABILITY_PAGES
+        PluginSdk.CAPABILITY_SOURCE or PluginSdk.CAPABILITY_UI_TABS or PluginSdk.CAPABILITY_PAGES
 
     /**
      * Resolves direct audio stream descriptors for the host player.
@@ -127,7 +127,7 @@ class NetworkSourcePlugin : BitperfectSourcePlugin() {
                     }
                 }
                 val msg = if (isFav) "Added to Favorites" else "Removed from Favorites"
-                ActionResultDto(ActionResultDto.KIND_TOAST, """{"message":"$msg"}""")
+                ActionResultDto(ActionResultDto.KIND_TOAST, """{"text":"$msg"}""")
             }
 
             "set_flac_pref" -> {

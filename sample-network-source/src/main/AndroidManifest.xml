@@ -21,10 +21,10 @@
                 android:name="com.bitperfect.plugin.PLUGIN_ID"
                 android:value="com.example.bitperfect.plugin.networksource" />
 
-            <!-- 2. Capabilities bitmask: SOURCE (1) | PAGES (256) = 257 -->
+            <!-- 2. Capabilities bitmask: SOURCE (1) | UI_TABS (8) | PAGES (256) = 265 -->
             <meta-data
                 android:name="com.bitperfect.plugin.CAPABILITIES"
-                android:value="257" />
+                android:value="265" />
 
             <!-- 3. Minimum supported host API level (6 for latest features) -->
             <meta-data

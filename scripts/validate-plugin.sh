@@ -293,12 +293,20 @@ else:
     except ValueError:
         errors.append(f"MIN_HOST_API must be an integer >= 4, found: '{min_api_raw}'.")
 
-# Optional navigation check
+# Check navigation requirements
 nav_id = meta_items.get("com.bitperfect.plugin.NAVIGATION_EXTENSION_ID")
 nav_target = meta_items.get("com.bitperfect.plugin.NAVIGATION_TARGET")
+nav_route = meta_items.get("com.bitperfect.plugin.NAVIGATION_ROUTE")
 if nav_id and nav_target:
     passes.append(f"Navigation integration: target='{nav_target}', id='{nav_id}'")
 
+if nav_target == "sidebar" or (nav_route and nav_target != "settings"):
+    try:
+        cap_val_check = int(capabilities_raw.strip()) if capabilities_raw else 0
+        if (cap_val_check & (1 << 3)) == 0:
+            errors.append("Declaring sidebar navigation requires CAPABILITY_UI_TABS (bit 8). Update CAPABILITIES to include 8 (e.g. 265 for SOURCE|UI_TABS|PAGES).")
+    except ValueError:
+        pass
 # Emit results
 for p in passes:
     print(f"PASS:{p}")
@@ -333,6 +341,9 @@ while IFS= read -r line; do
     fi
 done <<< "$OUTPUT"
 
+if [ $EXIT_CODE -ne 0 ] && [ ${#ERRORS[@]} -eq 0 ]; then
+    ERRORS+=("Python validator failed unexpectedly (exit code $EXIT_CODE): $OUTPUT")
+fi
 # Display passes
 if [ $QUIET -eq 0 ]; then
     if [ ${#PASSES[@]} -gt 0 ]; then

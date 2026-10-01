@@ -74,10 +74,10 @@ Below is a complete, production-ready manifest configuration:
                 android:name="com.bitperfect.plugin.PLUGIN_ID"
                 android:value="com.example.bitperfect.plugin.mysource" />
 
-            <!-- 2. Capabilities Bitmask (e.g. SOURCE (1) | PAGES (256) = 257) -->
+            <!-- 2. Capabilities Bitmask: SOURCE (1) | UI_TABS (8) | PAGES (256) = 265 -->
             <meta-data
                 android:name="com.bitperfect.plugin.CAPABILITIES"
-                android:value="257" />
+                android:value="265" />
 
             <!-- 3. Minimum Host API Level (Recommended: 6) -->
             <meta-data
@@ -124,7 +124,7 @@ Below is a complete, production-ready manifest configuration:
 | Key | Type | Description | Required? |
 |---|---|---|---|
 | `com.bitperfect.plugin.PLUGIN_ID` | String | Unique reverse-DNS identifier matching `applicationId`. | **Yes** |
-| `com.bitperfect.plugin.CAPABILITIES` | Integer | Bitmask of declared capabilities (e.g. `257` for SOURCE + PAGES). | **Yes** |
+| `com.bitperfect.plugin.CAPABILITIES` | Integer | Bitmask of declared capabilities (e.g. `265` for SOURCE + UI_TABS + PAGES). **Note:** Declaring sidebar navigation requires `CAPABILITY_UI_TABS` (bit 8). | **Yes** |
 | `com.bitperfect.plugin.MIN_HOST_API` | Integer | Minimum host API level (e.g. `4` for PAGES, `5` for DSP, `6` for extended controls). | **Yes** |
 | `com.bitperfect.plugin.NAVIGATION_EXTENSION_ID` | String | Stable ID for sidebar navigation entry. | Required if `NAVIGATION_ROUTE` is set |
 | `com.bitperfect.plugin.NAVIGATION_TARGET` | String | Mounting surface in host UI (currently `"sidebar"`). | Optional (defaults to `"sidebar"`) |
@@ -141,9 +141,9 @@ Below is a complete, production-ready manifest configuration:
 Bitperfect Player incorporates an out-of-process zero-trust sandbox:
 1. **Lazy Binding**: The player only binds to the plugin service when its capability is first invoked.
 2. **Explicit User Enablement**: Newly discovered plugins remain in `DISCOVERED` (disabled) state until the user explicitly turns them on in **Settings → Plugins**.
-3. **Signer Classification**:
-   * **BitperfectSigned**: Official first-party plugins signed with the Bitperfect release certificate.
+3. **Signer Classification & Trust Model**:
+   * **Official Releases**: Host verifies plugins against official release signing certificates.
    * **ThirdParty (Trusted)**: Community plugins whose signing certificate SHA-256 fingerprint is listed in the host allowlist or remote registry (`https://registry.bitperfect.app/plugins/trusted.json`).
    * **Untrusted**: Plugins signed with unverified certificates. When the user enables an untrusted plugin, the player displays a security dialog explaining third-party risks before any IPC connection is made.
 4. **Local Development / Debug Mode**:
-   * In debug builds of the player (`com.bitperfect.player.debug`), signing checks allow same-signer verification or local testing with your own debug keystore.
+   * In debug builds of the player, signing checks permit debug keystores or user explicit confirmation in **Settings → Plugins**.

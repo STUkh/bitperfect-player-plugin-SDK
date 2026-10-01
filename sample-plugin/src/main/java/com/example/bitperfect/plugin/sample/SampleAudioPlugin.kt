@@ -22,7 +22,7 @@ import com.bitperfect.player.sdk.plugin.runtime.PluginSdk
 class SampleAudioPlugin : BitperfectSourcePlugin() {
 
     override fun capabilities(): Int =
-        PluginSdk.CAPABILITY_SOURCE or PluginSdk.CAPABILITY_PAGES
+        PluginSdk.CAPABILITY_SOURCE or PluginSdk.CAPABILITY_UI_TABS or PluginSdk.CAPABILITY_PAGES
 
     /**
      * Resolves a direct audio stream for the given track.
@@ -71,7 +71,7 @@ class SampleAudioPlugin : BitperfectSourcePlugin() {
         return when (actionId) {
             "toggle_lossless" -> {
                 // Handle switch toggle event (params contains {"checked": "true"|"false"})
-                ActionResultDto(kind = "TOAST", json = """{"message":"Lossless setting updated"}""")
+                ActionResultDto(kind = "TOAST", json = """{"text":"Lossless setting updated"}""")
             }
             "set_gain" -> {
                 // Handle slider release event (params contains {"value": "<float>"})

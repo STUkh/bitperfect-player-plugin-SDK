@@ -19,10 +19,10 @@ class NetworkSourcePluginTest {
     }
 
     @Test
-    fun `capabilities returns SOURCE and PAGES`() {
-        val expected = PluginSdk.CAPABILITY_SOURCE or PluginSdk.CAPABILITY_PAGES
+    fun `capabilities returns SOURCE, UI_TABS, and PAGES`() {
+        val expected = PluginSdk.CAPABILITY_SOURCE or PluginSdk.CAPABILITY_UI_TABS or PluginSdk.CAPABILITY_PAGES
         assertEquals(expected, plugin.capabilities())
-        assertEquals(257, plugin.capabilities())
+        assertEquals(265, plugin.capabilities())
     }
 
     @Test

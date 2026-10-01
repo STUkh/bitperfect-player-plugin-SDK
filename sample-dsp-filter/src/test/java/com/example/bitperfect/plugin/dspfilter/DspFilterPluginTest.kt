@@ -208,5 +208,12 @@ class DspFilterPluginTest {
         val session = sessionBinder as DspSharedMemorySession
         session.reset()
         session.close()
+
+        // Closing session removes it from activeSessions map
+        val field = DspFilterPlugin::class.java.getDeclaredField("activeSessions").apply {
+            isAccessible = true
+        }
+        val activeSessions = field.get(plugin) as Map<*, *>
+        assertFalse(activeSessions.containsKey("session_reset_test"))
     }
 }
