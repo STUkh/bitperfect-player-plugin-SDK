@@ -285,7 +285,7 @@ EOF
 # Type-specific configurations
 case "$PLUGIN_TYPE" in
     source)
-        CAPABILITIES="257" # SOURCE (1) | PAGES (256)
+        CAPABILITIES="265" # SOURCE (1) | UI_TABS (8) | PAGES (256)
         NAV_TARGET="sidebar"
         NAV_ROUTE="catalog"
         NAV_ORDER="10"
@@ -396,7 +396,7 @@ class $SERVICE_CLASS : BitperfectSourcePlugin() {
     }
 
     override fun capabilities(): Int =
-        PluginSdk.CAPABILITY_SOURCE or PluginSdk.CAPABILITY_PAGES
+        PluginSdk.CAPABILITY_SOURCE or PluginSdk.CAPABILITY_UI_TABS or PluginSdk.CAPABILITY_PAGES
 
     /**
      * Resolves a direct audio stream descriptor for the host player.

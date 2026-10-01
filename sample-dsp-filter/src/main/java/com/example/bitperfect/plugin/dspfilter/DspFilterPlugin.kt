@@ -78,13 +78,13 @@ class DspFilterPlugin : BitperfectDspPlugin() {
             stageInfo = stageInfo,
             filter = filter,
             isBypassedProvider = { !isFilterActive.get() || isBypassed.get() },
+            onClosed = { activeSessions.remove(offer.sessionId) },
         )
 
         // Store active session and start audio processing worker loop
         activeSessions[offer.sessionId]?.close()
         activeSessions[offer.sessionId] = session
         session.startWorker()
-
         return DspSessionDescriptorDto(
             stageInfo = stageInfo,
             sessionBinder = session,
