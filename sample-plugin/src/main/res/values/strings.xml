@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">Sample Audio Plugin</string>
+    <string name="plugin_label">Sample Music</string>
+</resources>
