@@ -27,6 +27,9 @@ abstract class BitperfectDspPlugin : Service() {
     open fun onHostCallbackChanged(connected: Boolean) = Unit
 
     abstract fun onOpenDspSession(offer: DspSessionOfferDto): DspSessionDescriptorDto?
+    open fun onRenderPage(routeId: String, paramsJson: String?, pageToken: String?): PageDescriptorDto? = null
+
+    open fun onDispatchAction(actionId: String, paramsJson: String?): ActionResultDto? = null
 
     open fun capabilities(): Int = PluginSdk.CAPABILITY_DSP
 
@@ -81,9 +84,10 @@ abstract class BitperfectDspPlugin : Service() {
             routeId: String,
             paramsJson: String?,
             pageToken: String?,
-        ): PageDescriptorDto? = null
+        ): PageDescriptorDto? = onRenderPage(routeId, paramsJson, pageToken)
 
-        override fun dispatchAction(actionId: String, paramsJson: String?): ActionResultDto? = null
+        override fun dispatchAction(actionId: String, paramsJson: String?): ActionResultDto? =
+            onDispatchAction(actionId, paramsJson)
 
         override fun openDspSession(offer: DspSessionOfferDto?): DspSessionDescriptorDto? =
             offer?.let(::onOpenDspSession)

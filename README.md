@@ -24,7 +24,11 @@ bitperfect-player-plugin-sdk/
 ├── plugin-aidl/                 # AIDL interfaces (IBitperfectPluginV1) & Parcelable DTOs
 ├── plugin-pages/                # Kotlin models & parser for Server-Driven UI (Pages API v1)
 ├── plugin-runtime/              # Base services (BitperfectSourcePlugin, BitperfectDspPlugin) & trust guards
-├── sample-plugin/               # Fully buildable, runnable sample Android plugin app
+├── sample-plugin/               # Basic buildable sample plugin app
+├── sample-network-source/       # Legal open-source streaming source (FLAC/MP3, SDUI, search, tabs)
+├── sample-dsp-filter/           # Audiophile DSP filter (SharedMemory zero-copy ring, eventfd, SLIDER/SWITCH)
+├── skills/                      # AI assistant skills (skills.sh, Claude, Cursor, Windsurf)
+│   └── bitperfect-plugin-dev/   # Complete plugin dev skill playbook
 ├── docs/                        # In-depth technical guides
 │   ├── naming-and-discovery.md  # Critical package naming & manifest discovery rules
 │   ├── pages-sdui-guide.md      # Server-Driven UI, 120 FPS controls, SWITCH, SLIDER
@@ -75,7 +79,7 @@ Plugins declare their capabilities as an integer bitmask via `<meta-data android
 | `CAPABILITY_NOW_PLAYING_EXT` | `1 << 4` | `16` | Custom `RemoteViews` card embedded in the Now Playing screen. |
 | `CAPABILITY_SETTINGS` | `1 << 5` | `32` | Settings sub-screen (via plugin Activity). |
 | `CAPABILITY_AUTH` | `1 << 6` | `64` | Access to host credential callbacks. |
-| `CAPABILITY_CLOUD_SOURCE` | `1 << 7` | `128` | Cloud storage browser (WebDAV, Google Drive, etc.). |
+| `CAPABILITY_CLOUD_SOURCE` | `1 << 7` | `128` | Cloud storage browser (WebDAV, Nextcloud, S3, etc.). |
 | `CAPABILITY_PAGES` | `1 << 8` | `256` | Declarative Server-Driven UI (`onRenderPage` / `onDispatchAction`). |
 | `CAPABILITY_DSP` | `1 << 9` | `512` | Out-of-process real-time DSP filter stage via `SharedMemory`. |
 | `CAPABILITY_RECEIVER` | `1 << 10` | `1024` | Remote-control receiver / cast target. |
@@ -124,7 +128,7 @@ The output AARs will be located at:
 * 📖 [Plugin Naming, Manifest & Discovery Guide](docs/naming-and-discovery.md)
 * 🎨 [Server-Driven UI (Pages API v1) Guide](docs/pages-sdui-guide.md)
 * 🎛️ [DSP Audio Processing via SharedMemory](docs/dsp-audio-processing.md)
-
+* 🤖 [AI Coding Assistant Skill (skills.sh / Cursor / Claude)](docs/ai-plugin-dev-skill.md)
 ---
 
 ## 8. License

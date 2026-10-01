@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">Bitperfect DSP Parametric Filter</string>
+    <string name="dsp_plugin_label">Parametric Filter DSP</string>
+</resources>
