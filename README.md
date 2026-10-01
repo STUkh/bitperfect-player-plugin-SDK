@@ -123,14 +123,32 @@ The output AARs will be located at:
 
 ---
 
-## 7. Documentation
+## 7. Developer Tools & Scripts
+
+* **Scaffold a new plugin**:
+  ```bash
+  ./scripts/create-plugin.sh --id com.example.myplugin --name MyAudioPlugin --type source --out my-audio-plugin
+  ```
+* **Validate plugin manifest**:
+  ```bash
+  ./scripts/validate-plugin.sh my-audio-plugin
+  ```
+* **Publish SDK to Maven Local**:
+  ```bash
+  ./gradlew publishToMavenLocal
+  ```
+
+---
+
+## 8. Documentation & Contributing
 
 * 📖 [Plugin Naming, Manifest & Discovery Guide](docs/naming-and-discovery.md)
 * 🎨 [Server-Driven UI (Pages API v1) Guide](docs/pages-sdui-guide.md)
 * 🎛️ [DSP Audio Processing via SharedMemory](docs/dsp-audio-processing.md)
+* 🤝 [Contributing Guide](CONTRIBUTING.md)
 * 🤖 [AI Coding Assistant Skill (skills.sh / Cursor / Claude)](docs/ai-plugin-dev-skill.md)
+
 ---
 
-## 8. License
-
+## 9. License
 Licensed under the [Apache License, Version 2.0](LICENSE).

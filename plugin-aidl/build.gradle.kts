@@ -1,7 +1,11 @@
 plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.android.junit5)
+    `maven-publish`
 }
+
+group = "com.bitperfect.player"
+version = "6.0.0"
 
 android {
     namespace = "com.bitperfect.player.sdk.plugin.aidl"
@@ -28,10 +32,29 @@ android {
     buildFeatures {
         aidl = true
     }
+
+    publishing {
+        singleVariant("release") {
+            withSourcesJar()
+        }
+    }
 }
 
 dependencies {
     testImplementation(libs.junit5)
     testRuntimeOnly(libs.junit5.engine)
     testRuntimeOnly(libs.junit5.launcher)
+}
+
+afterEvaluate {
+    publishing {
+        publications {
+            register<MavenPublication>("release") {
+                from(components["release"])
+                groupId = "com.bitperfect.player"
+                artifactId = "plugin-aidl"
+                version = "6.0.0"
+            }
+        }
+    }
 }
