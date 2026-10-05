@@ -42,6 +42,7 @@ android {
 
 dependencies {
     testImplementation(libs.junit5)
+    testImplementation(libs.mockk)
     testRuntimeOnly(libs.junit5.engine)
     testRuntimeOnly(libs.junit5.launcher)
 }

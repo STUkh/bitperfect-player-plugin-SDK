@@ -5,6 +5,7 @@ import com.bitperfect.player.sdk.plugin.dto.AlbumDto
 import com.bitperfect.player.sdk.plugin.dto.BrowseResultDto
 import com.bitperfect.player.sdk.plugin.dto.PageDescriptorDto
 import com.bitperfect.player.sdk.plugin.dto.SearchResultDto
+import com.bitperfect.player.sdk.plugin.dto.toPageDescriptorDto
 import com.bitperfect.player.sdk.plugin.dto.StreamDescriptorDto
 import com.bitperfect.player.sdk.plugin.dto.TrackRefDto
 import com.bitperfect.player.sdk.plugin.runtime.BitperfectSourcePlugin
@@ -61,7 +62,7 @@ class SampleAudioPlugin : BitperfectSourcePlugin() {
             else -> null
         } ?: return null
 
-        return PageDescriptorDto(contractVersion = 1, json = pageJson)
+        return pageJson.toPageDescriptorDto()
     }
 
     /**

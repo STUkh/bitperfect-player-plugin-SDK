@@ -457,10 +457,7 @@ class $SERVICE_CLASS : BitperfectSourcePlugin() {
                 )
             )
         )
-        return PageDescriptorDto(
-            contractVersion = 1,
-            json = json.encodeToString(PluginPage.serializer(), page),
-        )
+        return page.toDescriptorDto(json = json)
     }
 
     /**
@@ -534,10 +531,7 @@ class $SERVICE_CLASS : BitperfectDspPlugin() {
                 )
             )
         )
-        return PageDescriptorDto(
-            contractVersion = 1,
-            json = json.encodeToString(PluginPage.serializer(), page),
-        )
+        return page.toDescriptorDto(json = json)
     }
 
     /**

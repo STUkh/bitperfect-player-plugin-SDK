@@ -113,8 +113,9 @@ class MySourcePlugin : BitperfectSourcePlugin() {
         routeId: String,
         paramsJson: String?,
         pageToken: String?,
-    ): PageDescriptorDto? = PageDescriptorDto(
-        1, """{ "v": 1, "title": "Catalog", "layout": "DETAIL", "sections": [ ... ] }"""
+    ): PageDescriptorDto? = PageDescriptorDto.pack(
+        """{ "v": 1, "title": "Catalog", "layout": "DETAIL", "sections": [ ... ] }""",
+        baseVersion = 1,
     )
 
     override fun onDispatchAction(actionId: String, paramsJson: String?): ActionResultDto =

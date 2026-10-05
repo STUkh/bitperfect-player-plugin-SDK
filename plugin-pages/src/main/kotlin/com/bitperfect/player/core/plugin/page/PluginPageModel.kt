@@ -1,8 +1,10 @@
 package com.bitperfect.player.core.plugin.page
 
+import com.bitperfect.player.sdk.plugin.dto.PageDescriptorDto
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
-
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 // Page JSON v1 wire model — see openspec/specs/plugin-extension-points/spec.md.
 
 @Serializable
@@ -22,6 +24,9 @@ data class PluginPage(
     val accentColor: String? = null,
     val contentType: String? = null,
 )
+
+fun PluginPage.toDescriptorDto(baseVersion: Int = 1, json: Json = Json): PageDescriptorDto =
+    PageDescriptorDto.pack(json.encodeToString(this), baseVersion)
 
 @Serializable
 data class PluginHero(

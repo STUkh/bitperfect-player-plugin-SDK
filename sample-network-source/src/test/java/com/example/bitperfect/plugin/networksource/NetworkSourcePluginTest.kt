@@ -68,7 +68,7 @@ class NetworkSourcePluginTest {
     fun `onRenderPage catalog featured produces valid PluginPage schema`() {
         val pageDto = plugin.onRenderPage("catalog", """{"tab":"featured"}""", null)
         assertNotNull(pageDto)
-        assertEquals(1, pageDto!!.contractVersion)
+        assertEquals(1, pageDto!!.baseVersion)
 
         val parseResult = PluginPageParser.parse(pageDto.json)
         assertTrue(parseResult is PluginPageParseResult.Ok, "Failed to parse: $parseResult")

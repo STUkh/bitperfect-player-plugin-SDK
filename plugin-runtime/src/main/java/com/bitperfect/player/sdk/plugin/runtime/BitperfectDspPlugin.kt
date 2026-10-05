@@ -84,7 +84,17 @@ abstract class BitperfectDspPlugin : Service() {
             routeId: String,
             paramsJson: String?,
             pageToken: String?,
-        ): PageDescriptorDto? = onRenderPage(routeId, paramsJson, pageToken)
+        ): PageDescriptorDto? {
+            val descriptor = onRenderPage(routeId, paramsJson, pageToken) ?: return null
+            val raw = descriptor.rawJson
+            return if (raw != null && descriptor.contractVersion == descriptor.baseVersion &&
+                raw.length > PageDescriptorDto.INLINE_THRESHOLD_BYTES
+            ) {
+                PageDescriptorDto.pack(raw, descriptor.baseVersion)
+            } else {
+                descriptor
+            }
+        }
 
         override fun dispatchAction(actionId: String, paramsJson: String?): ActionResultDto? =
             onDispatchAction(actionId, paramsJson)

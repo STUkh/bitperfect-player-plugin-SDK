@@ -21,18 +21,21 @@ Bitperfect Player uses an **Out-of-Process Isolation** and **Zero-Trust Sandbox*
 
 ```text
 bitperfect-player-plugin-sdk/
+├── .claude/                     # AI assistant instructions & skill playbooks
+│   ├── CLAUDE.md                # Claude Code reference to AGENTS.md
+│   └── skills/                  # Turnkey AI skills (bitperfect-plugin-dev)
+├── AGENTS.md                    # Universal AI agent instructions & architectural invariants
 ├── plugin-aidl/                 # AIDL interfaces (IBitperfectPluginV1) & Parcelable DTOs
 ├── plugin-pages/                # Kotlin models & parser for Server-Driven UI (Pages API v1)
 ├── plugin-runtime/              # Base services (BitperfectSourcePlugin, BitperfectDspPlugin) & trust guards
 ├── sample-plugin/               # Basic buildable sample plugin app
 ├── sample-network-source/       # Legal open-source streaming source (FLAC/MP3, SDUI, search, tabs)
 ├── sample-dsp-filter/           # Audiophile DSP filter (SharedMemory zero-copy ring, eventfd, SLIDER/SWITCH)
-├── skills/                      # AI assistant skills (skills.sh, Claude, Cursor, Windsurf)
-│   └── bitperfect-plugin-dev/   # Complete plugin dev skill playbook
 ├── docs/                        # In-depth technical guides
 │   ├── naming-and-discovery.md  # Critical package naming & manifest discovery rules
 │   ├── pages-sdui-guide.md      # Server-Driven UI, 120 FPS controls, SWITCH, SLIDER
-│   └── dsp-audio-processing.md  # Out-of-process DSP audio processing via SharedMemory
+│   ├── dsp-audio-processing.md  # Out-of-process DSP audio processing via SharedMemory
+│   └── ai-plugin-dev-skill.md   # AI assistant skill tooling & activation guide
 ├── build.gradle.kts             # Root Gradle build configuration
 ├── settings.gradle.kts          # Multi-project Gradle settings
 └── gradle/                      # Gradle wrapper & version catalogs
@@ -64,6 +67,11 @@ adb install -r sample-plugin/build/outputs/apk/debug/sample-plugin-debug.apk
 3. Toggle the plugin on.
 4. Open the navigation sidebar to browse your new plugin's catalog!
 
+
+### For AI Coding Assistants & Robots
+AI coding agents (Claude Code, Cursor, Windsurf, Copilot, Cline, etc.) can start working immediately:
+* **Universal Rules**: Read [`AGENTS.md`](AGENTS.md) for module mappings, build commands, and architectural constraints.
+* **Plugin Dev Skill**: Consult [`.claude/skills/bitperfect-plugin-dev/SKILL.md`](.claude/skills/bitperfect-plugin-dev/SKILL.md) and reference guides before generating or editing plugin code.
 ---
 
 ## 4. Capabilities Reference Table (API Level 6)
@@ -140,15 +148,45 @@ The output AARs will be located at:
 
 ---
 
-## 8. Documentation & Contributing
+## 8. AI Assistant & Agent Skills
+
+This repository includes a turnkey AI coding skill playbook designed specifically for AI robots and coding agents (Claude Code, Cursor, Windsurf, GitHub Copilot, Cline, skills.sh).
+
+### Skill Location & Structure
+* 🤖 **Universal Guidelines**: [`AGENTS.md`](AGENTS.md) — Architectural invariants, module maps, build commands, and security bounds.
+* 📘 **Primary Playbook**: [`.claude/skills/bitperfect-plugin-dev/SKILL.md`](.claude/skills/bitperfect-plugin-dev/SKILL.md) — Out-of-process architecture rules, manifest discovery, and implementation templates.
+* 🎨 **SDUI Schema & Vocabulary**: [`.claude/skills/bitperfect-plugin-dev/references/pages-vocabulary.md`](.claude/skills/bitperfect-plugin-dev/references/pages-vocabulary.md) — Pages API v1 JSON models, 12 section layouts, 120 FPS latency constraints.
+* 🔌 **AIDL Contracts**: [`.claude/skills/bitperfect-plugin-dev/references/aidl-contract.md`](.claude/skills/bitperfect-plugin-dev/references/aidl-contract.md) — Exact AIDL signatures, parcelable DTOs, and session protocols.
+* 📖 **In-Depth Guide**: [`docs/ai-plugin-dev-skill.md`](docs/ai-plugin-dev-skill.md) — Tooling integration, trigger configurations, and prompt guides.
+
+### Activation Triggers
+AI agents should activate or consult this skill whenever prompt topics involve:
+* `"bitperfect plugin"`
+* `"create plugin"` / `"scaffold plugin"`
+* `"audio source plugin"`
+* `"dsp plugin"` / `"sharedmemory dsp"`
+* `"pages api"` / `"sdui"`
+* `"plugin manifest"` / `"BIND_PLUGIN"`
+
+### How to Load in AI Coding Environments
+* **Claude Code**: Works out of the box via `.claude/CLAUDE.md` and `.claude/skills/`.
+* **Cursor / Windsurf**: Add a rule in `.cursorrules` / `.windsurfrules` pointing to `AGENTS.md` and `.claude/skills/bitperfect-plugin-dev/SKILL.md`.
+* **skills.sh Ecosystem**:
+  ```bash
+  npx skills add bitperfect-player/bitperfect-plugin-dev
+  ```
+
+---
+
+## 9. Documentation & Contributing
 
 * 📖 [Plugin Naming, Manifest & Discovery Guide](docs/naming-and-discovery.md)
 * 🎨 [Server-Driven UI (Pages API v1) Guide](docs/pages-sdui-guide.md)
 * 🎛️ [DSP Audio Processing via SharedMemory](docs/dsp-audio-processing.md)
 * 🤝 [Contributing Guide](CONTRIBUTING.md)
-* 🤖 [AI Coding Assistant Skill (skills.sh / Cursor / Claude)](docs/ai-plugin-dev-skill.md)
+* 🤖 [AI Coding Assistant Skill Guide](docs/ai-plugin-dev-skill.md)
 
 ---
 
-## 9. License
+## 10. License
 Licensed under the [Apache License, Version 2.0](LICENSE).

@@ -36,6 +36,7 @@ android {
 }
 
 dependencies {
+    api(project(":plugin-aidl"))
     implementation(libs.serialization.json)
     testImplementation("org.jetbrains.kotlin:kotlin-test:${libs.versions.kotlin.get()}")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit5:${libs.versions.kotlin.get()}")

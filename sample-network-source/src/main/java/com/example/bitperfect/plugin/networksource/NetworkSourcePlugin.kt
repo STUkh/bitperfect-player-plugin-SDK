@@ -97,11 +97,7 @@ class NetworkSourcePlugin : BitperfectSourcePlugin() {
             else -> buildCatalogPage(paramsJson, pageToken)
         } ?: return null
 
-        val pageJsonString = json.encodeToString(PluginPage.serializer(), page)
-        return PageDescriptorDto(
-            contractVersion = 1,
-            json = pageJsonString,
-        )
+        return page.toDescriptorDto(json = json)
     }
 
     /**

@@ -21,7 +21,9 @@ import io.mockk.mockkStatic
 import io.mockk.unmockkAll
 import io.mockk.verify
 import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertSame
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -232,6 +234,18 @@ class PluginGuardTest {
     }
 
     @Test
+    fun `dsp plugin delegates renderPage and dispatchAction to open hooks`() {
+        val plugin = DspProbe()
+        val binder = plugin.onBind(null) as IBitperfectPluginV1
+        val page = binder.renderPage("settings", null, null)
+        val action = binder.dispatchAction("save", null)
+
+        assertEquals("{\"route\":\"settings\"}", page?.json)
+        assertEquals(com.bitperfect.player.sdk.plugin.dto.ActionResultDto.KIND_TOAST, action?.kind)
+        assertEquals("{\"action\":\"save\"}", action?.json)
+    }
+
+    @Test
     fun `dead older callback cannot clear a newer registration`() {
         val callbacks = PluginHostCallbackRegistry()
         val first = mockk<IPluginHostCallbackV1>()
@@ -250,13 +264,66 @@ class PluginGuardTest {
         assertSame(second, callbacks.callback)
     }
 
+    @Test
+    fun `renderPage safety net packs large uncompressed descriptor`() {
+        val largeJson = "{\"items\":[${(1..2000).joinToString(",") { "{\"id\":$it,\"title\":\"Track $it\"}" }}]}"
+        assertTrue(largeJson.length > com.bitperfect.player.sdk.plugin.dto.PageDescriptorDto.INLINE_THRESHOLD_BYTES)
+
+        val plugin = object : SourceProbe() {
+            override fun onRenderPage(routeId: String, paramsJson: String?, pageToken: String?): com.bitperfect.player.sdk.plugin.dto.PageDescriptorDto {
+                return com.bitperfect.player.sdk.plugin.dto.PageDescriptorDto.pack(largeJson, 1)
+            }
+        }
+        val binder = plugin.onBind(null) as IBitperfectPluginV1
+        val result = binder.renderPage("catalog", null, null)
+
+        assertNotNull(result)
+        assertEquals(1, result!!.baseVersion)
+        assertTrue(result.contractVersion and com.bitperfect.player.sdk.plugin.dto.PageDescriptorDto.FLAG_COMPRESSED_GZIP != 0)
+        assertEquals(largeJson, result.json)
+    }
+
+    @Test
+    fun `dsp renderPage safety net packs large uncompressed descriptor`() {
+        val largeJson = "{\"items\":[${(1..2000).joinToString(",") { "{\"id\":$it,\"title\":\"Stage $it\"}" }}]}"
+        assertTrue(largeJson.length > com.bitperfect.player.sdk.plugin.dto.PageDescriptorDto.INLINE_THRESHOLD_BYTES)
+
+        val plugin = object : DspProbe() {
+            override fun onRenderPage(routeId: String, paramsJson: String?, pageToken: String?): com.bitperfect.player.sdk.plugin.dto.PageDescriptorDto {
+                return com.bitperfect.player.sdk.plugin.dto.PageDescriptorDto.pack(largeJson, 1)
+            }
+        }
+        val binder = plugin.onBind(null) as IBitperfectPluginV1
+        val result = binder.renderPage("settings", null, null)
+
+        assertNotNull(result)
+        assertEquals(1, result!!.baseVersion)
+        assertTrue(result.contractVersion and com.bitperfect.player.sdk.plugin.dto.PageDescriptorDto.FLAG_COMPRESSED_GZIP != 0)
+        assertEquals(largeJson, result.json)
+    }
+
+    @Test
+    fun `renderPage safety net preserves small descriptor untouched`() {
+        val smallJson = "{\"route\":\"catalog\"}"
+        val legacy = com.bitperfect.player.sdk.plugin.dto.PageDescriptorDto.pack(smallJson, 1)
+        val plugin = object : SourceProbe() {
+            override fun onRenderPage(routeId: String, paramsJson: String?, pageToken: String?): com.bitperfect.player.sdk.plugin.dto.PageDescriptorDto {
+                return legacy
+            }
+        }
+        val binder = plugin.onBind(null) as IBitperfectPluginV1
+        val result = binder.renderPage("catalog", null, null)
+
+        assertSame(legacy, result)
+    }
+
     private fun trustContext() {
         mockkObject(SignatureTrust)
         every { context.packageManager } returns packageManager
         every { context.packageName } returns "com.example.plugin"
     }
 
-    private class SourceProbe : BitperfectSourcePlugin() {
+    private open class SourceProbe : BitperfectSourcePlugin() {
         var resolved = false
         val descriptor = StreamDescriptorDto("https://example.test/audio", emptyMap(), false, null, null, "flac", 24, 192_000, 0)
 
@@ -338,5 +405,17 @@ class PluginGuardTest {
         }
 
         fun getCredential(key: String): String? = hostCallback?.getCredential(key)
+    }
+
+    private open class DspProbe : BitperfectDspPlugin() {
+        override fun onOpenDspSession(offer: com.bitperfect.player.sdk.plugin.dto.DspSessionOfferDto): com.bitperfect.player.sdk.plugin.dto.DspSessionDescriptorDto? = null
+
+        override fun onRenderPage(routeId: String, paramsJson: String?, pageToken: String?): com.bitperfect.player.sdk.plugin.dto.PageDescriptorDto? {
+            return com.bitperfect.player.sdk.plugin.dto.PageDescriptorDto.pack("{\"route\":\"$routeId\"}", 1)
+        }
+
+        override fun onDispatchAction(actionId: String, paramsJson: String?): com.bitperfect.player.sdk.plugin.dto.ActionResultDto? {
+            return com.bitperfect.player.sdk.plugin.dto.ActionResultDto(com.bitperfect.player.sdk.plugin.dto.ActionResultDto.KIND_TOAST, "{\"action\":\"$actionId\"}")
+        }
     }
 }
