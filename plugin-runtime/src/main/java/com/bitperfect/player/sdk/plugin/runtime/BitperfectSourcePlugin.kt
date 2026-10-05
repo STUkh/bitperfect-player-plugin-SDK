@@ -84,8 +84,19 @@ abstract class BitperfectSourcePlugin : Service() {
 
         override fun unregisterHostCallback(callback: IPluginHostCallbackV1) = callbacks.clear(callback)
 
-        override fun renderPage(routeId: String, paramsJson: String?, pageToken: String?): PageDescriptorDto? =
-            onRenderPage(routeId, paramsJson, pageToken)
+        override fun renderPage(routeId: String, paramsJson: String?, pageToken: String?): PageDescriptorDto? {
+            val descriptor = onRenderPage(routeId, paramsJson, pageToken) ?: return null
+            // Safety net: if developer returned an uncompressed PageDescriptorDto with large JSON,
+            // automatically pack it so they never crash Binder even if they used legacy constructor
+            val raw = descriptor.rawJson
+            return if (raw != null && descriptor.contractVersion == descriptor.baseVersion &&
+                raw.length > PageDescriptorDto.INLINE_THRESHOLD_BYTES
+            ) {
+                PageDescriptorDto.pack(raw, descriptor.baseVersion)
+            } else {
+                descriptor
+            }
+        }
         override fun dispatchAction(actionId: String, paramsJson: String?): ActionResultDto? =
             onDispatchAction(actionId, paramsJson)
         override fun openDspSession(offer: DspSessionOfferDto?): DspSessionDescriptorDto? = null
