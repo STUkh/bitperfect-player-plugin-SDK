@@ -6,6 +6,10 @@ import kotlinx.serialization.Transient
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 // Page JSON v1 wire model — see openspec/specs/plugin-extension-points/spec.md.
+const val PARAM_HOST_REFRESH = "_hostRefresh"
+const val PARAM_HOST_TRANSPORT = "_bp_host_transport"
+const val TRANSPORT_TIERED = "tiered"
+
 
 @Serializable
 data class PluginPage(
@@ -35,6 +39,7 @@ data class PluginHero(
     val meta: String? = null,
     val image: PluginImage? = null,
     val actions: List<PluginButton> = emptyList(),
+    val subtitleAction: PluginAction? = null,
 )
 
 @Serializable
