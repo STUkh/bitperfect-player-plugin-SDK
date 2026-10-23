@@ -114,6 +114,24 @@ Actions define what happens when an item, button, or slider is activated:
 * **`openActivity`**: Deep-links to an exported plugin Activity (e.g. for OAuth login).
 * **`openUrl`**: Opens an external web URL in the system browser.
 
+### Host-native Add to playlist
+
+Source plugins use the host playlist sheet. No AIDL or API level change. Plain `onDispatchAction` ids.
+
+| Action | Params | Reply |
+|---|---|---|
+| `playlist.list` | none | `KIND_NONE`, json `{"playlists":[{"id","title","count"}]}` |
+| `playlist.add` | `playlistId`, `trackId` | `KIND_TOAST` |
+| `playlist.create` | `input` (name), optional `trackId` | `KIND_TOAST` |
+
+* `playlist.list` returns only playlists the user can edit. `count` is optional. An empty list is valid.
+* On error, reply `KIND_TOAST` with a message, or `KIND_AUTH_REQUIRED` when signed out. The host shows the message and does not fall back to local playlists.
+* A track item with `role: "addToPlaylist"` makes the host send `playlist.list`. If the plugin answers, the host shows its sheet and calls `playlist.add` or `playlist.create`. If the plugin does not answer, the host runs the entry's own `action`.
+* Now Playing, queue, and history use the same sheet when `playlist.list` answers. Otherwise they show local playlists.
+* The contract code is in `plugin-pages` (package `com.bitperfect.player.core.plugin.page`): `ServicePlaylistActions` (action ids and param keys), `ServicePlaylist`, `ServicePlaylistCodec` (the `playlist.list` body), and `servicePlaylistChooseOptions` (a Choose list for a host without the native sheet).
+* `plugin-runtime` provides `ServicePlaylistCache`. It loads once per request (single-flight) with a 10 min TTL (`SERVICE_PLAYLISTS_TTL_MS`). Its `created`, `added`, `renamed`, `removed`, `seed`, and `title` functions write changes through to the cache. Do not refetch on add or create. Do not fetch the playlist or the track in `playlist.add`.
+* Call `invalidate()` on sign-out. A load that races `invalidate()` is not stored.
+
 ---
 
 ## 6. Descriptor Constraints (Enforced at Parse)
