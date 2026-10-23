@@ -198,6 +198,29 @@ Authoritative Server-Driven UI (Pages API v1) specification for Bitperfect Playe
 - **Menu Roles (`role`)**: `"favourite"`, `"addToPlaylist"`, `"remove"`, `"play"`, `"shuffle"`, `"more"`.
 - **Image Shapes (`shape`)**: `"SQUARE"`, `"CIRCLE"`.
 
+### Host-native Add to playlist (`role: "addToPlaylist"`)
+
+Source plugins use the host playlist sheet. No AIDL or API level change. Plain `onDispatchAction` ids.
+
+| Action | Params | Reply |
+|---|---|---|
+| `playlist.list` | none | `KIND_NONE`, json `{"playlists":[{"id","title","count"}]}` |
+| `playlist.add` | `playlistId`, `trackId` | `KIND_TOAST` |
+| `playlist.create` | `input` (name), optional `trackId` | `KIND_TOAST` |
+
+- `playlist.list` returns only playlists the user can edit. `count` is optional. An empty list is valid.
+- Contract code is in `plugin-pages`, package `com.bitperfect.player.core.plugin.page`:
+  - `ServicePlaylistActions`: action ids `LIST`, `ADD`, `CREATE`; param keys `PARAM_PLAYLIST_ID`, `PARAM_TRACK_ID`, `PARAM_NAME`.
+  - `ServicePlaylist(id, title, count?)`.
+  - `ServicePlaylistCodec`: encodes and decodes the `playlist.list` body.
+  - `servicePlaylistChooseOptions(playlists, trackId)`: builds a Choose list for a host without the native sheet.
+- `plugin-runtime` holds `List<ServicePlaylist>.toListResult()` and `ServicePlaylistCache`.
+- On error, reply `KIND_TOAST` with a message, or `KIND_AUTH_REQUIRED` when signed out. The host shows the message and does not fall back to local playlists.
+- The host sends `playlist.list` for a track item with `role: "addToPlaylist"`. If the plugin answers, the host shows its sheet and calls `playlist.add` or `playlist.create`. If the plugin does not answer (`KIND_NONE`, empty json), the host runs the entry's own `action`.
+- For a plugin track in Now Playing, queue, or history, the host uses the same sheet when `playlist.list` answers. Otherwise it shows local playlists.
+- `ServicePlaylistCache` loads the list once per request (single-flight). The TTL is 10 min (`SERVICE_PLAYLISTS_TTL_MS`). Use `created`, `added`, `renamed`, `removed`, `seed`, and `title` to write changes through to the cache. Do not refetch on add or create. Do not fetch the playlist or the track in `playlist.add`.
+- Call `invalidate()` on sign-out. A load that races `invalidate()` is not stored.
+
 ---
 
 ## 4. Action Results (`PluginActionResult` / `ActionResultDto`)

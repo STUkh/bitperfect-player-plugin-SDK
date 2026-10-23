@@ -37,6 +37,7 @@ android {
 dependencies {
     api(project(":plugin-aidl"))
     api(project(":plugin-pages"))
+    implementation(libs.coroutines.core)
     testImplementation(libs.junit5)
     testImplementation(libs.mockk)
     testRuntimeOnly(libs.junit5.engine)
