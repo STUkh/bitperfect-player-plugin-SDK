@@ -10,6 +10,8 @@ data class TrackRefDto(
     val title: String,
     val artist: String,
     val durationMs: Long,
+    val album: String? = null,
+    val artworkUrl: String? = null,
 ) : Parcelable {
 
     override fun describeContents(): Int = 0
@@ -21,6 +23,8 @@ data class TrackRefDto(
         dest.writeString(title)
         dest.writeString(artist)
         dest.writeLong(durationMs)
+        dest.writeString(album)
+        dest.writeString(artworkUrl)
     }
 
     companion object {
@@ -33,6 +37,8 @@ data class TrackRefDto(
                 title = p.readString().orEmpty(),
                 artist = p.readString().orEmpty(),
                 durationMs = p.readLong(),
+                album = p.readString(),
+                artworkUrl = p.readString(),
             )
 
             override fun newArray(size: Int) = arrayOfNulls<TrackRefDto>(size)

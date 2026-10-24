@@ -1,4 +1,4 @@
-# Bitperfect Player Out-of-Process AIDL Contract Reference (API Level 6)
+# Bitperfect Player Out-of-Process AIDL Contract Reference (API Level 7)
 
 Authoritative AIDL contract specification for Bitperfect Player plugins. All transactions use explicit, append-only transaction IDs.
 
@@ -204,5 +204,37 @@ interface IPluginReceiverSessionV1 {
 
     // Host commands immediate teardown of the active receiver session.
     oneway void onCloseSession();
+
+    // Host reports active track transition with track ID and duration.
+    oneway void onTrackTransition(String trackId, long durationMs);
+
+    // Host reports natural completion of the playback queue.
+    oneway void onQueueEnded();
+
+    // Host reports active hardware/software volume fraction (0.0..1.0) and mute status.
+    oneway void onDeviceVolumeChanged(float volumeFraction, boolean isMuted);
+}
+
+---
+
+## 5. `IHostReceiverControllerV1`
+
+Host-provided controller interface passed into `openReceiverSession()`. All methods are non-blocking `oneway`.
+
+```aidl
+package com.bitperfect.player.sdk.plugin;
+
+import com.bitperfect.player.sdk.plugin.dto.TrackRefDto;
+
+interface IHostReceiverControllerV1 {
+    oneway void playTrack(in TrackRefDto track, long startPositionMs);
+    oneway void pause();
+    oneway void resume();
+    oneway void seek(long positionMs);
+    oneway void setVolume(float volumeFraction);
+    oneway void updateQueue(in List<TrackRefDto> tracks, int activeIndex);
+    oneway void stop();
+    oneway void prepareQueue(in List<TrackRefDto> tracks, int activeIndex, long startPositionMs, boolean autoplay);
+    oneway void setDeviceMuted(boolean isMuted);
 }
 ```
