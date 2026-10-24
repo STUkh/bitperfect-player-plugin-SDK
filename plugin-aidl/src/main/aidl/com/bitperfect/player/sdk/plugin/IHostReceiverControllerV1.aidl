@@ -10,4 +10,6 @@ interface IHostReceiverControllerV1 {
     oneway void setVolume(float volumeFraction);
     oneway void updateQueue(in List<TrackRefDto> tracks, int activeIndex);
     oneway void stop();
+    oneway void prepareQueue(in List<TrackRefDto> tracks, int activeIndex, long startPositionMs, boolean autoplay);
+    boolean setDeviceMuted(boolean isMuted);
 }

@@ -6,4 +6,8 @@ interface IPluginReceiverSessionV1 {
     oneway void onDeviceFormatChanged(int sampleRate, int bitDepth);
     oneway void onBufferStateChanged(int bufferState);
     oneway void onCloseSession();
+    oneway void onTrackTransition(String trackId, long durationMs);
+    oneway void onQueueEnded();
+    oneway void onDeviceVolumeChanged(float volumeFraction, boolean isMuted);
+    oneway void onPlaybackError(String trackId, int errorCode, String errorMessage);
 }

@@ -1,8 +1,8 @@
 package com.bitperfect.player.sdk.plugin.runtime
 
-/** Public constants of the Bitperfect plugin SDK, API level 6. */
+// Public constants of the Bitperfect plugin SDK, API level 7.
 object PluginSdk {
-    const val API_VERSION = 6
+    const val API_VERSION = 7
 
     /** Intent action a plugin service must declare in its intent filter. */
     const val ACTION_BIND_PLUGIN = "com.bitperfect.plugin.BIND_PLUGIN"
@@ -45,4 +45,11 @@ object PluginSdk {
 
     /** Plugin acts as a remote-control receiver / cast target. */
     const val CAPABILITY_RECEIVER = 1 shl 10
+
+    // Generic receiver playback error codes (API 7)
+    const val ERROR_DECODE = 1
+    const val ERROR_OUTPUT = 2
+    const val ERROR_UNSUPPORTED = 3
+    const val ERROR_NETWORK = 4
+    const val ERROR_GENERIC = 5
 }
