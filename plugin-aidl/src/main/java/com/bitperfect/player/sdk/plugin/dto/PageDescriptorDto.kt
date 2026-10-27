@@ -79,6 +79,16 @@ class PageDescriptorDto internal constructor(
         }
     }
 
+    fun toLegacy(): PageDescriptorDto =
+        if (contractVersion == baseVersion && rawJson != null) {
+            this
+        } else {
+            PageDescriptorDto(
+                contractVersion = baseVersion,
+                rawJson = json,
+            )
+        }
+
     override fun describeContents(): Int =
         if (pfd != null) Parcelable.CONTENTS_FILE_DESCRIPTOR else 0
 
@@ -120,8 +130,14 @@ class PageDescriptorDto internal constructor(
         const val FLAG_COMPRESSED_DEFLATE = 1 shl 14  // 0x4000 (ZLIB Deflate)
         const val FLAG_COMPRESSED_GZIP = 1 shl 15     // 0x8000 (GZIP stream)
         const val VERSION_MASK = 0x00FF               // Lower 8 bits for base API version
-        const val INLINE_THRESHOLD_BYTES = 16 * 1024       // 16 KB
+        const val INLINE_THRESHOLD_BYTES = 256 * 1024      // 256 KB (raised from 16 KB)
         const val COMPRESSION_THRESHOLD_BYTES = 512 * 1024 // 512 KB
+        const val PARAM_HOST_TRANSPORT = "_bp_host_transport"
+        const val TRANSPORT_TIERED = "tiered"
+
+        @JvmStatic
+        fun raw(json: String, baseVersion: Int = 1): PageDescriptorDto =
+            PageDescriptorDto(contractVersion = baseVersion and VERSION_MASK, rawJson = json)
 
         @JvmStatic
         fun pack(json: String, baseVersion: Int = 1): PageDescriptorDto {

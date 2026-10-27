@@ -31,6 +31,8 @@ abstract class BitperfectSourcePlugin : Service() {
 
     abstract fun onResolveStream(track: TrackRefDto, maxBitDepth: Int, maxSampleRate: Int): StreamDescriptorDto?
 
+    open fun onPrepareNextStream(track: TrackRefDto, maxBitDepth: Int, maxSampleRate: Int): StreamDescriptorDto? =
+        onResolveStream(track, maxBitDepth, maxSampleRate)
     open fun onBrowse(folderId: String?, pageToken: String?): BrowseResultDto? = null
 
     open fun onSearch(query: String, pageToken: String?): SearchResultDto? = null
@@ -71,6 +73,8 @@ abstract class BitperfectSourcePlugin : Service() {
         override fun getCapabilities(): Int = capabilities()
         override fun resolveStream(track: TrackRefDto, maxBitDepth: Int, maxSampleRate: Int): StreamDescriptorDto? =
             onResolveStream(track, maxBitDepth, maxSampleRate)
+        override fun prepareNextStream(track: TrackRefDto, maxBitDepth: Int, maxSampleRate: Int): StreamDescriptorDto? =
+            onPrepareNextStream(track, maxBitDepth, maxSampleRate)
         override fun browse(folderId: String?, pageToken: String?): BrowseResultDto? = onBrowse(folderId, pageToken)
         override fun search(query: String, pageToken: String?): SearchResultDto? = onSearch(query, pageToken)
         override fun getAlbum(albumId: String): AlbumDto? = onGetAlbum(albumId)
@@ -85,16 +89,25 @@ abstract class BitperfectSourcePlugin : Service() {
         override fun unregisterHostCallback(callback: IPluginHostCallbackV1) = callbacks.clear(callback)
 
         override fun renderPage(routeId: String, paramsJson: String?, pageToken: String?): PageDescriptorDto? {
+            val callingUid = Binder.getCallingUid()
             val descriptor = onRenderPage(routeId, paramsJson, pageToken) ?: return null
-            // Safety net: if developer returned an uncompressed PageDescriptorDto with large JSON,
-            // automatically pack it so they never crash Binder even if they used legacy constructor
-            val raw = descriptor.rawJson
-            return if (raw != null && descriptor.contractVersion == descriptor.baseVersion &&
-                raw.length > PageDescriptorDto.INLINE_THRESHOLD_BYTES
-            ) {
-                PageDescriptorDto.pack(raw, descriptor.baseVersion)
+            val supportsTiered = HostTransportNegotiator.isTieredTransportSupported(
+                context = this@BitperfectSourcePlugin,
+                paramsJson = paramsJson,
+                callingUid = callingUid,
+            )
+
+            return if (supportsTiered) {
+                val raw = descriptor.rawJson
+                if (raw != null && descriptor.contractVersion == descriptor.baseVersion &&
+                    raw.length > PageDescriptorDto.INLINE_THRESHOLD_BYTES
+                ) {
+                    PageDescriptorDto.pack(raw, descriptor.baseVersion)
+                } else {
+                    descriptor
+                }
             } else {
-                descriptor
+                descriptor.toLegacy()
             }
         }
         override fun dispatchAction(actionId: String, paramsJson: String?): ActionResultDto? =

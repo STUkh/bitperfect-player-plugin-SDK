@@ -55,6 +55,7 @@ class NetworkSourcePlugin : BitperfectSourcePlugin() {
         val flacUrl = station.streamUrlFlac
         val streamUrl = if (useFlac && flacUrl != null) flacUrl else station.streamUrlMp3
         val codec = if (useFlac) "flac" else "mp3"
+        val mimeType = if (useFlac) "audio/flac" else "audio/mpeg"
         val bitDepth = if (useFlac) station.bitDepth else 16
         val sampleRate = station.sampleRate
 
@@ -79,6 +80,7 @@ class NetworkSourcePlugin : BitperfectSourcePlugin() {
             bitDepth = bitDepth,
             sampleRate = sampleRate,
             expiresAtEpochMs = expiresAt,
+            mimeType = mimeType,
         )
     }
 

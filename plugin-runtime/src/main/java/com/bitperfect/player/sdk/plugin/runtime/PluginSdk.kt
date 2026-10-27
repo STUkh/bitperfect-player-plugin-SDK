@@ -1,8 +1,8 @@
 package com.bitperfect.player.sdk.plugin.runtime
 
-// Public constants of the Bitperfect plugin SDK, API level 7.
+// Public constants of the Bitperfect plugin SDK, API level 8.
 object PluginSdk {
-    const val API_VERSION = 7
+    const val API_VERSION = 8
 
     /** Intent action a plugin service must declare in its intent filter. */
     const val ACTION_BIND_PLUGIN = "com.bitperfect.plugin.BIND_PLUGIN"

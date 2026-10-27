@@ -35,6 +35,9 @@ abstract class BitperfectRendererPlugin : Service() {
     open fun onResolveStream(track: TrackRefDto, maxBitDepth: Int, maxSampleRate: Int): StreamDescriptorDto? =
         throw UnsupportedOperationException("Not a SOURCE plugin")
 
+    open fun onPrepareNextStream(track: TrackRefDto, maxBitDepth: Int, maxSampleRate: Int): StreamDescriptorDto? =
+        throw UnsupportedOperationException("Not a SOURCE plugin")
+
     open fun onBrowse(folderId: String?, pageToken: String?): BrowseResultDto? =
         throw UnsupportedOperationException("Not a SOURCE plugin")
 
@@ -68,6 +71,8 @@ abstract class BitperfectRendererPlugin : Service() {
         override fun getCapabilities(): Int = capabilities()
         override fun resolveStream(track: TrackRefDto, maxBitDepth: Int, maxSampleRate: Int): StreamDescriptorDto? =
             onResolveStream(track, maxBitDepth, maxSampleRate)
+        override fun prepareNextStream(track: TrackRefDto, maxBitDepth: Int, maxSampleRate: Int): StreamDescriptorDto? =
+            onPrepareNextStream(track, maxBitDepth, maxSampleRate)
         override fun browse(folderId: String?, pageToken: String?): BrowseResultDto? = onBrowse(folderId, pageToken)
         override fun search(query: String, pageToken: String?): SearchResultDto? = onSearch(query, pageToken)
         override fun getAlbum(albumId: String): AlbumDto? = onGetAlbum(albumId)

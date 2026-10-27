@@ -90,6 +90,9 @@ interface IBitperfectPluginV1 {
 
     // OUTPUT_RENDERER: stop remote playback session.
     void stopRenderer(String rendererId) = 21;
+
+    // SOURCE: pre-resolve the next stream descriptor for gapless transition.
+    @nullable StreamDescriptorDto prepareNextStream(in TrackRefDto track, int maxBitDepth, int maxSampleRate) = 22;
 }
 ```
 

@@ -1,4 +1,4 @@
-// IBitperfectPluginV1 — Bitperfect Player out-of-process plugin contract, API level 6.
+// IBitperfectPluginV1 — Bitperfect Player out-of-process plugin contract, API level 8.
 //
 // STABILITY: transaction ids are explicit and APPEND-ONLY. A method is never
 // removed, reordered, or re-signed; new methods append with the next id and a
@@ -71,4 +71,7 @@ interface IBitperfectPluginV1 {
     boolean seekRenderer(String rendererId, long positionMs) = 19;
     boolean setRendererVolume(String rendererId, float volumeFraction) = 20;
     void stopRenderer(String rendererId) = 21;
+
+    // SOURCE: pre-resolve the next stream descriptor for gapless transition.
+    @nullable StreamDescriptorDto prepareNextStream(in TrackRefDto track, int maxBitDepth, int maxSampleRate) = 22;
 }
