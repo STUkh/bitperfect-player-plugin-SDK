@@ -13,6 +13,10 @@ data class StreamDescriptorDto(
     val bitDepth: Int,
     val sampleRate: Int,
     val expiresAtEpochMs: Long,
+    val encoderDelay: Int = 0,
+    val encoderPadding: Int = 0,
+    val pcmSampleCount: Long = 0L,
+    val mimeType: String? = null,
 ) : Parcelable {
 
     override fun describeContents(): Int = 0
@@ -31,6 +35,10 @@ data class StreamDescriptorDto(
         dest.writeInt(bitDepth)
         dest.writeInt(sampleRate)
         dest.writeLong(expiresAtEpochMs)
+        dest.writeInt(encoderDelay)
+        dest.writeInt(encoderPadding)
+        dest.writeLong(pcmSampleCount)
+        dest.writeString(mimeType)
     }
 
     override fun equals(other: Any?): Boolean {
@@ -39,7 +47,11 @@ data class StreamDescriptorDto(
         return url == other.url && headers == other.headers && encrypted == other.encrypted &&
             trackKey.contentEquals(other.trackKey) && cipher == other.cipher && codec == other.codec &&
             bitDepth == other.bitDepth && sampleRate == other.sampleRate &&
-            expiresAtEpochMs == other.expiresAtEpochMs
+            expiresAtEpochMs == other.expiresAtEpochMs &&
+            encoderDelay == other.encoderDelay &&
+            encoderPadding == other.encoderPadding &&
+            pcmSampleCount == other.pcmSampleCount &&
+            mimeType == other.mimeType
     }
 
     override fun hashCode(): Int {
@@ -52,6 +64,10 @@ data class StreamDescriptorDto(
         result = 31 * result + bitDepth
         result = 31 * result + sampleRate
         result = 31 * result + expiresAtEpochMs.hashCode()
+        result = 31 * result + encoderDelay
+        result = 31 * result + encoderPadding
+        result = 31 * result + pcmSampleCount.hashCode()
+        result = 31 * result + (mimeType?.hashCode() ?: 0)
         return result
     }
 
@@ -73,6 +89,10 @@ data class StreamDescriptorDto(
                     bitDepth = p.readInt(),
                     sampleRate = p.readInt(),
                     expiresAtEpochMs = p.readLong(),
+                    encoderDelay = if (p.dataAvail() > 0) p.readInt() else 0,
+                    encoderPadding = if (p.dataAvail() > 0) p.readInt() else 0,
+                    pcmSampleCount = if (p.dataAvail() > 0) p.readLong() else 0L,
+                    mimeType = if (p.dataAvail() > 0) p.readString() else null,
                 )
             }
 

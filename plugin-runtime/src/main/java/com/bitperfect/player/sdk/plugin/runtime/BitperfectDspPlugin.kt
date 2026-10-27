@@ -27,11 +27,12 @@ abstract class BitperfectDspPlugin : Service() {
     open fun onHostCallbackChanged(connected: Boolean) = Unit
 
     abstract fun onOpenDspSession(offer: DspSessionOfferDto): DspSessionDescriptorDto?
+
+    open fun capabilities(): Int = PluginSdk.CAPABILITY_DSP
+
     open fun onRenderPage(routeId: String, paramsJson: String?, pageToken: String?): PageDescriptorDto? = null
 
     open fun onDispatchAction(actionId: String, paramsJson: String?): ActionResultDto? = null
-
-    open fun capabilities(): Int = PluginSdk.CAPABILITY_DSP
 
     private val binder = object : IBitperfectPluginV1.Stub() {
         override fun onTransact(code: Int, data: Parcel, reply: Parcel?, flags: Int): Boolean {
@@ -47,6 +48,12 @@ abstract class BitperfectDspPlugin : Service() {
         override fun getCapabilities(): Int = capabilities()
 
         override fun resolveStream(
+            track: TrackRefDto,
+            maxBitDepth: Int,
+            maxSampleRate: Int,
+        ): StreamDescriptorDto? = throw UnsupportedOperationException("Not a SOURCE plugin")
+
+        override fun prepareNextStream(
             track: TrackRefDto,
             maxBitDepth: Int,
             maxSampleRate: Int,
@@ -85,14 +92,25 @@ abstract class BitperfectDspPlugin : Service() {
             paramsJson: String?,
             pageToken: String?,
         ): PageDescriptorDto? {
+            val callingUid = Binder.getCallingUid()
             val descriptor = onRenderPage(routeId, paramsJson, pageToken) ?: return null
-            val raw = descriptor.rawJson
-            return if (raw != null && descriptor.contractVersion == descriptor.baseVersion &&
-                raw.length > PageDescriptorDto.INLINE_THRESHOLD_BYTES
-            ) {
-                PageDescriptorDto.pack(raw, descriptor.baseVersion)
+            val supportsTiered = HostTransportNegotiator.isTieredTransportSupported(
+                context = this@BitperfectDspPlugin,
+                paramsJson = paramsJson,
+                callingUid = callingUid,
+            )
+
+            return if (supportsTiered) {
+                val raw = descriptor.rawJson
+                if (raw != null && descriptor.contractVersion == descriptor.baseVersion &&
+                    raw.length > PageDescriptorDto.INLINE_THRESHOLD_BYTES
+                ) {
+                    PageDescriptorDto.pack(raw, descriptor.baseVersion)
+                } else {
+                    descriptor
+                }
             } else {
-                descriptor
+                descriptor.toLegacy()
             }
         }
 

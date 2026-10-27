@@ -20,7 +20,7 @@ import java.util.zip.GZIPOutputStream
 class PageDescriptorDtoTest {
 
     @Test
-    fun `pack small json within 16 KB routes to Tier 1 inline raw string`() {
+    fun `pack small json within 256 KB routes to Tier 1 inline raw string`() {
         val smallJson = "{\"v\":1,\"title\":\"Small Home\",\"items\":[1,2,3]}"
         assertTrue(smallJson.toByteArray(StandardCharsets.UTF_8).size <= PageDescriptorDto.INLINE_THRESHOLD_BYTES)
 
@@ -36,8 +36,8 @@ class PageDescriptorDtoTest {
 
     @Test
     fun `pack medium json routes to Tier 2 compressed GZIP blob`() {
-        // Build JSON > 16 KB but <= 512 KB compressed
-        val repeatCount = 800
+        // Build JSON > 256 KB but <= 512 KB compressed
+        val repeatCount = 3000
         val mediumJson = "{\"v\":1,\"tracks\":[" + (1..repeatCount).joinToString(",") {
             "{\"id\":\"track_$it\",\"title\":\"Long Track Title Number $it\",\"performer\":\"Artist Name\",\"album\":\"Sample Album Title\"}"
         } + "]}"
@@ -215,7 +215,7 @@ class PageDescriptorDtoTest {
 
     @Test
     fun `writeToParcel and createFromParcel roundtrip for Tier 2 compressed GZIP`() {
-        val mediumJson = "{\"v\":1,\"items\":[" + (1..1000).joinToString(",") { "{\"id\":$it,\"title\":\"Track title number $it\",\"artist\":\"Artist Name\"}" } + "]}"
+        val mediumJson = "{\"v\":1,\"items\":[" + (1..5000).joinToString(",") { "{\"id\":$it,\"title\":\"Track title number $it\",\"artist\":\"Artist Name\"}" } + "]}"
         val dto = PageDescriptorDto.pack(mediumJson, baseVersion = 1)
         assertTrue(dto.contractVersion and PageDescriptorDto.FLAG_COMPRESSED_GZIP != 0)
 
@@ -332,5 +332,63 @@ class PageDescriptorDtoTest {
             pfd = null,
         )
         assertEquals("", dto.json)
+    }
+
+    @Test
+    fun `toLegacy strips transport flags and writes raw json string to parcel`() {
+        val largeJson = "{\"v\":1,\"items\":[" + (1..3000).joinToString(",") { "{\"id\":$it,\"title\":\"Long Track Title Number $it\",\"performer\":\"Artist Name\",\"album\":\"Sample Album Title\"}" } + "]}"
+        val rawBytes = largeJson.toByteArray(StandardCharsets.UTF_8)
+        assertTrue(rawBytes.size > PageDescriptorDto.INLINE_THRESHOLD_BYTES)
+        val packed = PageDescriptorDto.pack(largeJson, baseVersion = 1)
+        assertTrue(packed.contractVersion and PageDescriptorDto.FLAG_COMPRESSED_GZIP != 0)
+
+        val legacy = packed.toLegacy()
+        assertEquals(1, legacy.contractVersion)
+        assertEquals(1, legacy.baseVersion)
+        assertEquals(largeJson, legacy.json)
+        assertNotNull(legacy.rawJson)
+
+        val parcel = io.mockk.mockk<Parcel>(relaxed = true)
+        legacy.writeToParcel(parcel, 0)
+        io.mockk.verify { parcel.writeInt(1) }
+        io.mockk.verify { parcel.writeString(largeJson) }
+        io.mockk.verify(exactly = 0) { parcel.writeByteArray(any()) }
+        io.mockk.verify(exactly = 0) { parcel.writeParcelable(any(), any()) }
+    }
+
+    @Test
+    fun `toLegacy returns self if already uncompressed legacy format`() {
+        val rawDto = PageDescriptorDto.raw("{\"route\":\"home\"}", baseVersion = 1)
+        val legacy = rawDto.toLegacy()
+        org.junit.jupiter.api.Assertions.assertSame(rawDto, legacy)
+    }
+    @Test
+    fun `legacy 1_3_1 CREATOR successfully reads toLegacy output`() {
+        val largeJson = "{\"v\":1,\"items\":[" + (1..3000).joinToString(",") { "{\"id\":$it,\"title\":\"Long Track Title Number $it\",\"performer\":\"Artist Name\",\"album\":\"Sample Album Title\"}" } + "]}"
+        val packed = PageDescriptorDto.pack(largeJson, baseVersion = 1)
+        val legacy = packed.toLegacy()
+
+        val parcel = io.mockk.mockk<Parcel>()
+        io.mockk.every { parcel.readInt() } returns legacy.contractVersion
+        io.mockk.every { parcel.readString() } returns legacy.rawJson
+
+        // Simulate legacy host 1.3.1 Parcelable.Creator:
+        // Reads contractVersion (int) then rawJson (String) unconditionally
+        val legacyVersion = parcel.readInt()
+        val legacyRawJson = parcel.readString().orEmpty()
+        val hostDto = PageDescriptorDto(contractVersion = legacyVersion, rawJson = legacyRawJson)
+
+        assertEquals(1, hostDto.contractVersion)
+        assertEquals(largeJson, hostDto.json)
+    }
+
+    @Test
+    fun `raw factory creates uncompressed descriptor with masked version`() {
+        val json = "{\"test\":true}"
+        val dto = PageDescriptorDto.raw(json, baseVersion = 0x1201)
+        assertEquals(1, dto.contractVersion)
+        assertEquals(1, dto.baseVersion)
+        assertEquals(json, dto.rawJson)
+        assertEquals(json, dto.json)
     }
 }

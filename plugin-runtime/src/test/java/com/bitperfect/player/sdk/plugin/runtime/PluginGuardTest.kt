@@ -244,7 +244,6 @@ class PluginGuardTest {
         assertEquals(com.bitperfect.player.sdk.plugin.dto.ActionResultDto.KIND_TOAST, action?.kind)
         assertEquals("{\"action\":\"save\"}", action?.json)
     }
-
     @Test
     fun `dead older callback cannot clear a newer registration`() {
         val callbacks = PluginHostCallbackRegistry()
@@ -266,7 +265,7 @@ class PluginGuardTest {
 
     @Test
     fun `renderPage safety net packs large uncompressed descriptor`() {
-        val largeJson = "{\"items\":[${(1..2000).joinToString(",") { "{\"id\":$it,\"title\":\"Track $it\"}" }}]}"
+        val largeJson = "{\"items\":[${(1..10000).joinToString(",") { "{\"id\":$it,\"title\":\"Track $it\"}" }}]}"
         assertTrue(largeJson.length > com.bitperfect.player.sdk.plugin.dto.PageDescriptorDto.INLINE_THRESHOLD_BYTES)
 
         val plugin = object : SourceProbe() {
@@ -285,7 +284,7 @@ class PluginGuardTest {
 
     @Test
     fun `dsp renderPage safety net packs large uncompressed descriptor`() {
-        val largeJson = "{\"items\":[${(1..2000).joinToString(",") { "{\"id\":$it,\"title\":\"Stage $it\"}" }}]}"
+        val largeJson = "{\"items\":[${(1..10000).joinToString(",") { "{\"id\":$it,\"title\":\"Stage $it\"}" }}]}"
         assertTrue(largeJson.length > com.bitperfect.player.sdk.plugin.dto.PageDescriptorDto.INLINE_THRESHOLD_BYTES)
 
         val plugin = object : DspProbe() {
