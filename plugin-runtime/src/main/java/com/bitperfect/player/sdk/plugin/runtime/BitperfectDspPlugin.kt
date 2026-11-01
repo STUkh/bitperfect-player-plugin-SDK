@@ -28,6 +28,7 @@ abstract class BitperfectDspPlugin : Service() {
 
     abstract fun onOpenDspSession(offer: DspSessionOfferDto): DspSessionDescriptorDto?
 
+    open fun apiVersion(): Int = 7
     open fun capabilities(): Int = PluginSdk.CAPABILITY_DSP
 
     open fun onRenderPage(routeId: String, paramsJson: String?, pageToken: String?): PageDescriptorDto? = null
@@ -44,7 +45,7 @@ abstract class BitperfectDspPlugin : Service() {
             return super.onTransact(code, data, reply, flags)
         }
 
-        override fun getApiVersion(): Int = PluginSdk.API_VERSION
+        override fun getApiVersion(): Int = apiVersion()
         override fun getCapabilities(): Int = capabilities()
 
         override fun resolveStream(

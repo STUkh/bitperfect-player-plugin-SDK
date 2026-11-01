@@ -55,6 +55,7 @@ abstract class BitperfectRendererPlugin : Service() {
     open fun onSeekRenderer(rendererId: String, positionMs: Long): Boolean = false
     open fun onSetRendererVolume(rendererId: String, volumeFraction: Float): Boolean = false
     open fun onStopRenderer(rendererId: String) = Unit
+    open fun apiVersion(): Int = 7
     open fun capabilities(): Int = PluginSdk.CAPABILITY_OUTPUT_RENDERER
 
     private val binder = object : IBitperfectPluginV1.Stub() {
@@ -67,7 +68,7 @@ abstract class BitperfectRendererPlugin : Service() {
             return super.onTransact(code, data, reply, flags)
         }
 
-        override fun getApiVersion(): Int = PluginSdk.API_VERSION
+        override fun getApiVersion(): Int = apiVersion()
         override fun getCapabilities(): Int = capabilities()
         override fun resolveStream(track: TrackRefDto, maxBitDepth: Int, maxSampleRate: Int): StreamDescriptorDto? =
             onResolveStream(track, maxBitDepth, maxSampleRate)
