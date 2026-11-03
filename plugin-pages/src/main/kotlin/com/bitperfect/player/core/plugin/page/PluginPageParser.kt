@@ -80,7 +80,8 @@ object PluginPageParser {
         title = page.title.truncate(),
         subtitle = page.subtitle?.truncate(),
         search = page.search?.sanitize(),
-        sections = page.sections.take(PluginPageLimits.MAX_SECTIONS)
+        // Compose lazy keys must be unique; a repeated plugin id crashed the UI in 1.4.0.
+        sections = page.sections.distinctBy { it.id }.take(PluginPageLimits.MAX_SECTIONS)
             .filter { it.kind in KNOWN_SECTION_KINDS }
             .map { it.sanitize() },
         empty = page.empty?.sanitize(),
@@ -124,7 +125,7 @@ object PluginPageParser {
         val itemCap = if (kind == "QUICK_PLAY") PluginPageLimits.MAX_QUICK_PLAY else PluginPageLimits.MAX_ITEMS_PER_SECTION
         return copy(
             header = header?.sanitize(),
-            items = items.take(itemCap).map { it.sanitize(longText = kind == "TEXT") },
+            items = items.distinctBy { it.id }.take(itemCap).map { it.sanitize(longText = kind == "TEXT") },
             empty = empty?.sanitize(),
             error = error?.sanitize(),
         )

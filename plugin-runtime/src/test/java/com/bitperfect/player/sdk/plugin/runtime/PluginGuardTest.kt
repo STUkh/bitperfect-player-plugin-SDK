@@ -28,6 +28,9 @@ import org.junit.jupiter.api.Assertions.assertSame
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 
 class PluginGuardTest {
     private val context = mockk<Context>()
@@ -316,6 +319,245 @@ class PluginGuardTest {
         assertSame(legacy, result)
     }
 
+    @Test
+    fun `resolveStream timeout safeguard returns null when resolution hangs`() {
+        val plugin = object : SourceProbe() {
+            override fun resolveTimeoutMs(): Long = 50L
+            override fun onResolveStream(track: TrackRefDto, maxBitDepth: Int, maxSampleRate: Int): StreamDescriptorDto? {
+                Thread.sleep(500L)
+                return StreamDescriptorDto("https://example.test", emptyMap(), false, null, null, "flac", 24, 192000, 0)
+            }
+        }
+        val binder = plugin.onBind(null) as IBitperfectPluginV1
+        val track = TrackRefDto("test", "t1", null, "Title", "Artist", 1000L)
+        val result = binder.resolveStream(track, 24, 192000)
+        org.junit.jupiter.api.Assertions.assertNull(result)
+    }
+
+    @Test
+    fun `browse timeout safeguard returns null when browse hangs`() {
+        val plugin = object : SourceProbe() {
+            override fun browseTimeoutMs(): Long = 50L
+            override fun onBrowse(folderId: String?, pageToken: String?): com.bitperfect.player.sdk.plugin.dto.BrowseResultDto? {
+                Thread.sleep(500L)
+                return com.bitperfect.player.sdk.plugin.dto.BrowseResultDto(emptyList(), null)
+            }
+        }
+        val binder = plugin.onBind(null) as IBitperfectPluginV1
+        val result = binder.browse("folder", null)
+        org.junit.jupiter.api.Assertions.assertNull(result)
+    }
+    @Test
+    fun `search timeout safeguard returns null when search hangs`() {
+        val plugin = object : SourceProbe() {
+            override fun browseTimeoutMs(): Long = 50L
+            override fun onSearch(query: String, pageToken: String?): com.bitperfect.player.sdk.plugin.dto.SearchResultDto? {
+                Thread.sleep(500L)
+                return com.bitperfect.player.sdk.plugin.dto.SearchResultDto(emptyList(), null)
+            }
+        }
+        val binder = plugin.onBind(null) as IBitperfectPluginV1
+        val result = binder.search("query", null)
+        org.junit.jupiter.api.Assertions.assertNull(result)
+    }
+
+    @Test
+    fun `getAlbum timeout safeguard returns null when album detail hangs`() {
+        val plugin = object : SourceProbe() {
+            override fun browseTimeoutMs(): Long = 50L
+            override fun onGetAlbum(albumId: String): com.bitperfect.player.sdk.plugin.dto.AlbumDto? {
+                Thread.sleep(500L)
+                return com.bitperfect.player.sdk.plugin.dto.AlbumDto("album-1", "Album", "Artist", null, emptyList())
+            }
+        }
+        val binder = plugin.onBind(null) as IBitperfectPluginV1
+        val result = binder.getAlbum("album-1")
+        org.junit.jupiter.api.Assertions.assertNull(result)
+    }
+
+    @Test
+    fun `dispatchAction timeout safeguard returns null when dispatch hangs`() {
+        val plugin = object : SourceProbe() {
+            override fun dispatchActionTimeoutMs(): Long = 50L
+            override fun onDispatchAction(actionId: String, paramsJson: String?): com.bitperfect.player.sdk.plugin.dto.ActionResultDto? {
+                Thread.sleep(500L)
+                return com.bitperfect.player.sdk.plugin.dto.ActionResultDto(com.bitperfect.player.sdk.plugin.dto.ActionResultDto.KIND_NONE, "{}")
+            }
+        }
+        val binder = plugin.onBind(null) as IBitperfectPluginV1
+        val result = binder.dispatchAction("action", null)
+        org.junit.jupiter.api.Assertions.assertNull(result)
+    }
+
+    @Test
+    fun `safeguard catches exceptions in resolveStream, browse, search, getAlbum, and dispatchAction`() {
+        val plugin = object : SourceProbe() {
+            override fun onResolveStream(track: TrackRefDto, maxBitDepth: Int, maxSampleRate: Int): StreamDescriptorDto? {
+                throw IllegalStateException("Resolution failure")
+            }
+            override fun onBrowse(folderId: String?, pageToken: String?): com.bitperfect.player.sdk.plugin.dto.BrowseResultDto? {
+                throw RuntimeException("Browse failure")
+            }
+            override fun onSearch(query: String, pageToken: String?): com.bitperfect.player.sdk.plugin.dto.SearchResultDto? {
+                throw RuntimeException("Search failure")
+            }
+            override fun onGetAlbum(albumId: String): com.bitperfect.player.sdk.plugin.dto.AlbumDto? {
+                throw RuntimeException("GetAlbum failure")
+            }
+            override fun onDispatchAction(actionId: String, paramsJson: String?): com.bitperfect.player.sdk.plugin.dto.ActionResultDto? {
+                throw RuntimeException("Dispatch failure")
+            }
+        }
+        val binder = plugin.onBind(null) as IBitperfectPluginV1
+        val track = TrackRefDto("test", "t1", null, "Title", "Artist", 1000L)
+        org.junit.jupiter.api.Assertions.assertNull(binder.resolveStream(track, 24, 192000))
+        org.junit.jupiter.api.Assertions.assertNull(binder.browse("folder", null))
+        org.junit.jupiter.api.Assertions.assertNull(binder.search("query", null))
+        org.junit.jupiter.api.Assertions.assertNull(binder.getAlbum("album-1"))
+        org.junit.jupiter.api.Assertions.assertNull(binder.dispatchAction("action", null))
+    }
+
+    @Test
+    fun `dsp dispatchAction timeout safeguard returns null when dispatch hangs`() {
+        val plugin = object : DspProbe() {
+            override fun dispatchActionTimeoutMs(): Long = 50L
+            override fun onDispatchAction(actionId: String, paramsJson: String?): com.bitperfect.player.sdk.plugin.dto.ActionResultDto? {
+                Thread.sleep(500L)
+                return com.bitperfect.player.sdk.plugin.dto.ActionResultDto(com.bitperfect.player.sdk.plugin.dto.ActionResultDto.KIND_NONE, "{}")
+            }
+        }
+        val binder = plugin.onBind(null) as IBitperfectPluginV1
+        val result = binder.dispatchAction("action", null)
+        org.junit.jupiter.api.Assertions.assertNull(result)
+    }
+
+    @Test
+    fun `dsp dispatchAction catches exceptions`() {
+        val plugin = object : DspProbe() {
+            override fun onDispatchAction(actionId: String, paramsJson: String?): com.bitperfect.player.sdk.plugin.dto.ActionResultDto? {
+                throw RuntimeException("DSP dispatch failure")
+            }
+        }
+        val binder = plugin.onBind(null) as IBitperfectPluginV1
+        org.junit.jupiter.api.Assertions.assertNull(binder.dispatchAction("action", null))
+    }
+
+    @Test
+    fun `source plugin returns null safely and does not respawn threads after onDestroy`() {
+        val plugin = SourceProbe()
+        val binder = plugin.onBind(null) as IBitperfectPluginV1
+        val track = TrackRefDto("test", "t1", null, "Title", "Artist", 1000L)
+
+        // Normal call before destroy succeeds
+        assertNotNull(binder.resolveStream(track, 24, 192000))
+
+        // Destroy service
+        plugin.onDestroy()
+
+        // Post-destroy calls return null without throwing or leaking threads
+        org.junit.jupiter.api.Assertions.assertNull(binder.resolveStream(track, 24, 192000))
+        org.junit.jupiter.api.Assertions.assertNull(binder.browse(null, null))
+        org.junit.jupiter.api.Assertions.assertNull(binder.search("query", null))
+        org.junit.jupiter.api.Assertions.assertNull(binder.getAlbum("a1"))
+        org.junit.jupiter.api.Assertions.assertNull(binder.dispatchAction("act", null))
+        assertFalse(binder.playOnRenderer("r1", track, "http://media"))
+    }
+
+    @Test
+    fun `source plugin bounded pool gracefully handles excess concurrent load`() {
+        val activeTasksLatch = CountDownLatch(8)
+        val releaseLatch = CountDownLatch(1)
+        val plugin = object : SourceProbe() {
+            override fun onResolveStream(track: TrackRefDto, maxBitDepth: Int, maxSampleRate: Int): StreamDescriptorDto? {
+                activeTasksLatch.countDown()
+                releaseLatch.await(5, TimeUnit.SECONDS)
+                return descriptor
+            }
+        }
+        val binder = plugin.onBind(null) as IBitperfectPluginV1
+        val track = TrackRefDto("test", "t1", null, "Title", "Artist", 1000L)
+        val pool = Executors.newFixedThreadPool(16)
+
+        try {
+            // Submit 8 tasks to occupy all bounded threads
+            repeat(8) {
+                pool.submit { binder.resolveStream(track, 24, 192000) }
+            }
+            assertTrue(activeTasksLatch.await(3, TimeUnit.SECONDS), "8 worker threads should be active")
+
+            // The 9th task exceeds the bounded pool capacity of 8 with SynchronousQueue and must be rejected gracefully
+            val overflowResult = binder.resolveStream(track, 24, 192000)
+            org.junit.jupiter.api.Assertions.assertNull(overflowResult, "Overflow task must return null on rejection without crashing")
+        } finally {
+            releaseLatch.countDown()
+            pool.shutdownNow()
+            plugin.onDestroy()
+        }
+    }
+
+    @Test
+    fun `renderer plugin operations timeout and catch exceptions`() {
+        val plugin = object : BitperfectRendererPlugin() {
+            override fun rendererTimeoutMs(): Long = 50L
+            override fun rendererControlTimeoutMs(): Long = 50L
+            override fun onListRenderers(): List<RendererInfoDto> {
+                Thread.sleep(500L)
+                return listOf(RendererInfoDto("r1", "Speaker", "upnp", supportsGapless = true, isAvailable = true))
+            }
+            override fun onPlayOnRenderer(rendererId: String, track: TrackRefDto, hostMediaUrl: String): Boolean {
+                Thread.sleep(500L)
+                return true
+            }
+            override fun onEnqueueNextOnRenderer(rendererId: String, track: TrackRefDto, hostMediaUrl: String): Boolean {
+                throw RuntimeException("Network fault")
+            }
+            override fun onPauseRenderer(rendererId: String): Boolean {
+                throw RuntimeException("Pause fault")
+            }
+            override fun onResumeRenderer(rendererId: String): Boolean {
+                Thread.sleep(500L)
+                return true
+            }
+        }
+        val binder = plugin.onBind(null) as IBitperfectPluginV1
+        val track = TrackRefDto("test", "t1", null, "Title", "Artist", 1000L)
+
+        // listRenderers times out -> emptyList()
+        assertTrue(binder.listRenderers().isEmpty())
+        // playOnRenderer times out -> false
+        assertFalse(binder.playOnRenderer("r1", track, "http://host/1.flac"))
+        // enqueueNextOnRenderer exception -> false
+        assertFalse(binder.enqueueNextOnRenderer("r1", track, "http://host/1.flac"))
+        // pauseRenderer exception -> false
+        assertFalse(binder.pauseRenderer("r1"))
+        // resumeRenderer timeout -> false
+        assertFalse(binder.resumeRenderer("r1"))
+
+        plugin.onDestroy()
+        // post-destroy call returns safely
+        assertFalse(binder.playOnRenderer("r1", track, "http://host/1.flac"))
+    }
+
+    @Test
+    fun `dsp plugin returns null safely after onDestroy and openDspSession catches exceptions`() {
+        val plugin = object : DspProbe() {
+            override fun dspSessionTimeoutMs(): Long = 50L
+            override fun onOpenDspSession(offer: com.bitperfect.player.sdk.plugin.dto.DspSessionOfferDto): com.bitperfect.player.sdk.plugin.dto.DspSessionDescriptorDto? {
+                throw RuntimeException("DSP engine fault")
+            }
+        }
+        val binder = plugin.onBind(null) as IBitperfectPluginV1
+        val offer = mockk<com.bitperfect.player.sdk.plugin.dto.DspSessionOfferDto>()
+
+        // Exception in openDspSession caught safely
+        org.junit.jupiter.api.Assertions.assertNull(binder.openDspSession(offer))
+
+        plugin.onDestroy()
+        // Post-destroy call returns null safely
+        org.junit.jupiter.api.Assertions.assertNull(binder.openDspSession(offer))
+        org.junit.jupiter.api.Assertions.assertNull(binder.dispatchAction("act", null))
+    }
+
     private fun trustContext() {
         mockkObject(SignatureTrust)
         every { context.packageManager } returns packageManager
@@ -326,7 +568,7 @@ class PluginGuardTest {
         var resolved = false
         val descriptor = StreamDescriptorDto("https://example.test/audio", emptyMap(), false, null, null, "flac", 24, 192_000, 0)
 
-        override fun onResolveStream(track: TrackRefDto, maxBitDepth: Int, maxSampleRate: Int): StreamDescriptorDto {
+        override fun onResolveStream(track: TrackRefDto, maxBitDepth: Int, maxSampleRate: Int): StreamDescriptorDto? {
             resolved = true
             return descriptor
         }

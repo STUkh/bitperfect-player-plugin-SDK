@@ -35,7 +35,7 @@ fun pluginFavoriteButton(
     type: PluginFavoriteType,
     id: String,
     isFavorite: Boolean,
-    label: String = "Favourite",
+    label: String = "",
     buttonId: String = "fav_${type.wireName}_$id",
 ): PluginButton =
     PluginButton(

@@ -60,7 +60,7 @@ class PluginFavoritesContractTest {
     fun `pluginFavoriteButton configures button based on favorite state`() {
         val favBtn = pluginFavoriteButton(PluginFavoriteType.ARTIST, "art_1", isFavorite = true)
         assertEquals("fav_artist_art_1", favBtn.id)
-        assertEquals("Favourite", favBtn.label)
+        assertEquals("", favBtn.label)
         assertEquals("HEART_FILLED", favBtn.icon)
         assertEquals("favourite", favBtn.role)
         assertEquals("false", favBtn.action.params?.get(PARAM_ON))

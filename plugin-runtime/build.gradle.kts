@@ -41,6 +41,7 @@ dependencies {
     testImplementation(libs.junit5)
     testImplementation(libs.mockk)
     testImplementation("org.json:json:20231013")
+    testImplementation(libs.serialization.json)
     testRuntimeOnly(libs.junit5.engine)
     testRuntimeOnly(libs.junit5.launcher)
 }

@@ -118,6 +118,15 @@ class PluginPageParserTest {
     }
 
     @Test
+    fun duplicateItemAndSectionIdsAreDropped() {
+        val result = PluginPageParser.parse(
+            page(sections = section(id = "s", items = item(id = "15820730") + "," + item(id = "15820730") + "," + item(id = "x")) + "," + section(id = "s")),
+        )
+        assertIs<PluginPageParseResult.Ok>(result)
+        assertEquals(listOf("15820730", "x"), result.page.sections.single().items.map { it.id })
+    }
+
+    @Test
     fun itemsOverLimitAreTruncated() {
         val items = (0 until PluginPageLimits.MAX_ITEMS_PER_SECTION + 5).joinToString(",") {
             item(id = "i$it")
