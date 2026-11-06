@@ -57,6 +57,11 @@ class PluginRequestRegistryTest {
     }
 
     @Test
+    fun `zero timeout means no deadline`() = runTest {
+        assertEquals("ok", registry().await(null, 0L) { "ok" })
+    }
+
+    @Test
     fun `registry is empty after normal completion and after failure`() = runTest {
         val registry = registry()
         assertEquals("ok", registry.await("r3", 1_000L) { "ok" })

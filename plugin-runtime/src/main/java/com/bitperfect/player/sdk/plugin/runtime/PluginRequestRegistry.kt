@@ -20,10 +20,11 @@ internal class PluginRequestRegistry(private val scope: CoroutineScope) {
 
     /** Runs [block] in [scope] under [timeoutMs]; null on timeout, failure or [cancel]. */
     suspend fun <T> await(requestId: String?, timeoutMs: Long, block: suspend () -> T?): T? {
-        val work = scope.async { withTimeout(timeoutMs) { block() } }
+        // timeoutMs <= 0 = no deadline (withTimeout(0) would fail instantly).
+        val work = scope.async { if (timeoutMs > 0L) withTimeout(timeoutMs) { block() } else block() }
         if (requestId != null) jobs[requestId] = work
         return try {
-            withTimeout(if (timeoutMs > 0L) timeoutMs else Long.MAX_VALUE) { work.await() }
+            work.await()
         } catch (e: CancellationException) {
             currentCoroutineContext().ensureActive()
             null
