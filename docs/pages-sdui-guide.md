@@ -132,6 +132,14 @@ Source plugins use the host playlist sheet. No AIDL or API level change. Plain `
 * `plugin-runtime` provides `ServicePlaylistCache`. It loads once per request (single-flight) with a 10 min TTL (`SERVICE_PLAYLISTS_TTL_MS`). Its `created`, `added`, `renamed`, `removed`, `seed`, and `title` functions write changes through to the cache. Do not refetch on add or create. Do not fetch the playlist or the track in `playlist.add`.
 * Call `invalidate()` on sign-out. A load that races `invalidate()` is not stored.
 
+### Account scope and staged library sync (`plugin-runtime`, no API change)
+
+Use these for a service that keeps per-user data (cache DB, id sets, playlist cache) and a library of thousands of items.
+
+* `AccountScope(userId, parent)` is a `CoroutineScope` for one signed-in user. Put the user's storage, caches and jobs in a subclass. `close()` releases the storage. `setFill(job)` / `cancelFill()` keep one playback-fill job. `guarded { }` runs a storage access as a child of the scope, so teardown joins it before the storage closes. It returns `null` when the account is gone.
+* `AccountScopes(parent, factory, deleteStorage, legacyCleanup, authRequired)` owns the one live scope in `current`. `open(userId)` reuses the same user and tears down a different one first. `require()` throws `authRequired()` (default `AuthRequiredException`). `detach()` clears the reference at once and does the teardown in the background. `logout(clear)` waits for the teardown (cancel, join, `close()`, `deleteStorage`) and then runs `clear` even when the teardown failed. Use one `AccountScopes` for login, session expiry and logout, so no path leaves the old user's data readable.
+* `StagedLibrarySync(pager, store, scope, stallMs, pageSize, cap, onProgress)` copies a remote list (newest first) into a staging table and replaces the visible table in one `swap` transaction. It never clears the visible table first. The cursor (`sync_offset`, `sync_total`, `sync_head_id`) lives in the store, so a cancelled or failed run resumes when the server total and newest id are unchanged. `ensureRunning()` starts one job per account and returns the running job if there is one. There is no total deadline: only a step with no progress for `stallMs` fails the run. Implement `LibraryPager` (`probe()` gives `LibraryHead(total, headId)`; `page(offset, limit)`) and `StagingStore` (meta, staging count, `stage`, `swap`, `isUpToDate`). Render from the visible table or the first network page, and show `onProgress` as "done / total".
+
 ---
 
 ## 6. Descriptor Constraints (Enforced at Parse)
