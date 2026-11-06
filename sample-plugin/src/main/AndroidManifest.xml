@@ -11,6 +11,7 @@
         <!-- Exported Plugin Service -->
         <service
             android:name=".SampleAudioPlugin"
+            android:label="Sample Audio"
             android:exported="true">
             <intent-filter>
                 <action android:name="com.bitperfect.plugin.BIND_PLUGIN" />

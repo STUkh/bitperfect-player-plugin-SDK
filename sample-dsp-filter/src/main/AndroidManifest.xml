@@ -9,6 +9,7 @@
         <!-- Exported Bitperfect DSP Plugin Service -->
         <service
             android:name=".DspFilterPlugin"
+            android:label="DSP Parametric Filter"
             android:exported="true">
             <intent-filter>
                 <action android:name="com.bitperfect.plugin.BIND_PLUGIN" />

@@ -11,6 +11,7 @@
         <!-- Exported Bitperfect Source Plugin Service -->
         <service
             android:name=".NetworkSourcePlugin"
+            android:label="Open Audio Streams"
             android:exported="true">
             <intent-filter>
                 <action android:name="com.bitperfect.plugin.BIND_PLUGIN" />

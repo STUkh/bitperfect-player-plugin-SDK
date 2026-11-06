@@ -4,6 +4,14 @@ plugins {
     alias(libs.plugins.android.junit5)
 }
 
+// Release APK name: bitperfect-plugin-<module>[<versionName>].apk
+androidComponents.onVariants(androidComponents.selector().withBuildType("release")) { v ->
+    v.outputs.forEach { o ->
+        (o as com.android.build.api.variant.impl.VariantOutputImpl).outputFileName
+            .set(o.versionName.map { "bitperfect-plugin-${project.name}[$it].apk" })
+    }
+}
+
 android {
     namespace = "com.example.bitperfect.plugin.dspfilter"
     compileSdk = 37

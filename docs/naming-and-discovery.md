@@ -61,6 +61,7 @@ Below is a complete, production-ready manifest configuration:
 
         <!-- Exported Service implementing BitperfectSourcePlugin.
              android:label = short name shown in the host plugin list; the app label ("Bitperfect Plugin - <Name>") is what Android Apps shows. -->
+        <!-- Release APK file: bitperfect-plugin-<module>[<versionName>].apk (see sample build.gradle.kts). -->
         <service
             android:name=".MySourcePlugin"
             android:label="My Service"

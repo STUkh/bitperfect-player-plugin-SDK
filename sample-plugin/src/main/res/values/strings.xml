@@ -1,4 +1,4 @@
 <resources>
-    <string name="app_name">Sample Audio Plugin</string>
+    <string name="app_name" translatable="false">Bitperfect Plugin - Sample Audio</string>
     <string name="plugin_label">Sample Music</string>
 </resources>

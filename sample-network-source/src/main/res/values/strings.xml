@@ -1,4 +1,4 @@
 <resources>
-    <string name="app_name">Open Audio Streams</string>
+    <string name="app_name" translatable="false">Bitperfect Plugin - Open Audio Streams</string>
     <string name="plugin_label">Open Audio Streams</string>
 </resources>

@@ -203,6 +203,14 @@ plugins {
     id("org.jetbrains.kotlin.plugin.serialization")
 }
 
+// Release APK name: bitperfect-plugin-<module>[<versionName>].apk
+androidComponents.onVariants(androidComponents.selector().withBuildType("release")) { v ->
+    v.outputs.forEach { o ->
+        (o as com.android.build.api.variant.impl.VariantOutputImpl).outputFileName
+            .set(o.versionName.map { "bitperfect-plugin-\${project.name}[\$it].apk" })
+    }
+}
+
 android {
     namespace = "$PLUGIN_ID"
     compileSdk = 37
@@ -277,8 +285,8 @@ EOF
 cat <<EOF > "$TARGET_DIR/src/main/res/values/strings.xml"
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">$PLUGIN_NAME</string>
-    <string name="plugin_label">$PLUGIN_NAME</string>
+    <string name="app_name" translatable="false">Bitperfect Plugin - $PLUGIN_NAME</string>
+    <string name="plugin_label" translatable="false">$PLUGIN_NAME</string>
 </resources>
 EOF
 
@@ -317,9 +325,10 @@ cat <<EOF > "$TARGET_DIR/src/main/AndroidManifest.xml"
         android:icon="@android:drawable/ic_media_play"
         android:label="@string/app_name">
 
-        <!-- Exported Bitperfect Player Plugin Service -->
+        <!-- Exported Bitperfect Player Plugin Service; its label is the short in-app name -->
         <service
             android:name=".$SERVICE_CLASS"
+            android:label="@string/plugin_label"
             android:exported="true">
             <intent-filter>
                 <action android:name="com.bitperfect.plugin.BIND_PLUGIN" />
