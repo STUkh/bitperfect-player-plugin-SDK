@@ -59,9 +59,11 @@ Below is a complete, production-ready manifest configuration:
         android:icon="@drawable/ic_plugin_icon"
         android:label="@string/plugin_name">
 
-        <!-- Exported Service implementing BitperfectSourcePlugin -->
+        <!-- Exported Service implementing BitperfectSourcePlugin.
+             android:label = short name shown in the host plugin list; the app label ("Bitperfect Plugin - <Name>") is what Android Apps shows. -->
         <service
             android:name=".MySourcePlugin"
+            android:label="My Service"
             android:exported="true">
             
             <!-- Mandatory Intent Filter for Discovery -->
