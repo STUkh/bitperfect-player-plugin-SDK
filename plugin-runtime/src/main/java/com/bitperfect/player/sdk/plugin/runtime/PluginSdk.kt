@@ -1,8 +1,10 @@
 package com.bitperfect.player.sdk.plugin.runtime
 
+import com.bitperfect.player.sdk.plugin.ApiLevel
+
 // Public constants of the Bitperfect plugin SDK, API level 9.
 object PluginSdk {
-    const val API_VERSION = 9
+    const val API_VERSION = ApiLevel.CURRENT
 
     /** Intent action a plugin service must declare in its intent filter. */
     const val ACTION_BIND_PLUGIN = "com.bitperfect.plugin.BIND_PLUGIN"

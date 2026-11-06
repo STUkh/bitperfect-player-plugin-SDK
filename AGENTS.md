@@ -35,7 +35,7 @@ Read `.claude/skills/bitperfect-plugin-dev/SKILL.md` before generating, modifyin
 - **Theme**: Host renders strictly using Flat-Dark design tokens. No light mode, neon glows, or translucent blurs.
 
 ### 4. AIDL Evolution & Contracts
-- **Append-Only Transactions**: Never reorder, mutate, or remove transaction methods in `IBitperfectPluginV1.aidl`. Always append new methods at the end and bump `API_VERSION`.
+- **Append-Only Transactions**: Never reorder, mutate, or remove transaction methods in `IBitperfectPluginV1.aidl`. Always append new methods at the end and bump `ApiLevel.CURRENT` (`plugin-aidl`); `PluginSdk.API_VERSION` follows it. Compare API levels by `ApiLevel` names, never bare numbers.
 - **Read** `.claude/skills/bitperfect-plugin-dev/references/aidl-contract.md` when inspecting transaction codes or method signatures.
 
 ## Build and Verification Commands

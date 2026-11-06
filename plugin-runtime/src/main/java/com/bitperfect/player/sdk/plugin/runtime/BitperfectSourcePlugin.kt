@@ -62,6 +62,14 @@ abstract class BitperfectSourcePlugin : Service() {
     open suspend fun onRenderPageSuspend(routeId: String, paramsJson: String?, pageToken: String?): PageDescriptorDto? =
         runInterruptible { onRenderPage(routeId, paramsJson, pageToken) }
 
+    /** Parsed variant: params without `_bp_*` keys. Defaults to [onRenderPageSuspend] with the raw JSON. */
+    open suspend fun onRenderPageRequest(request: PageRequest): PageDescriptorDto? =
+        onRenderPageSuspend(request.routeId, request.rawParamsJson, request.pageToken)
+
+    /** Parsed variant of [onDispatchActionSuspend]. */
+    open suspend fun onDispatchActionRequest(request: ActionRequest): ActionResultDto? =
+        onDispatchActionSuspend(request.actionId, request.rawParamsJson)
+
     open fun onDispatchAction(actionId: String, paramsJson: String?): ActionResultDto? = null
 
     /** Cancellable variant of [onDispatchAction]. */
@@ -86,8 +94,9 @@ abstract class BitperfectSourcePlugin : Service() {
 
     open fun resolveTimeoutMs(): Long = callPolicy.resolveStreamMs
     open fun browseTimeoutMs(): Long = callPolicy.browseMs
-    open fun renderPageTimeoutMs(): Long = callPolicy.renderPageMs
-    open fun dispatchActionTimeoutMs(): Long = callPolicy.dispatchActionMs
+    // Contract-fixed (PluginCallLimits); internal so only tests in this module can shorten them.
+    internal open fun renderPageTimeoutMs(): Long = callPolicy.renderPageMs
+    internal open fun dispatchActionTimeoutMs(): Long = callPolicy.dispatchActionMs
     open fun rendererTimeoutMs(): Long = callPolicy.rendererMs
     open fun rendererControlTimeoutMs(): Long = callPolicy.rendererControlMs
 
@@ -230,8 +239,9 @@ abstract class BitperfectSourcePlugin : Service() {
 
         override fun renderPage(routeId: String, paramsJson: String?, pageToken: String?): PageDescriptorDto? {
             val callingUid = Binder.getCallingUid()
-            val descriptor = runCancellable(PluginRequestRegistry.requestIdOf(paramsJson), renderPageTimeoutMs()) {
-                onRenderPageSuspend(routeId, paramsJson, pageToken)
+            val parsed = parseParams(paramsJson)
+            val descriptor = runCancellable(parsed.requestId, renderPageTimeoutMs()) {
+                onRenderPageRequest(PageRequest(routeId, parsed.params, pageToken, parsed.requestId, paramsJson))
             } ?: return null
             val supportsTiered = HostTransportNegotiator.isTieredTransportSupported(
                 context = this@BitperfectSourcePlugin,
@@ -253,8 +263,10 @@ abstract class BitperfectSourcePlugin : Service() {
             }
         }
         override fun dispatchAction(actionId: String, paramsJson: String?): ActionResultDto? =
-            runCancellable(PluginRequestRegistry.requestIdOf(paramsJson), dispatchActionTimeoutMs()) {
-                onDispatchActionSuspend(actionId, paramsJson)
+            parseParams(paramsJson).let { parsed ->
+                runCancellable(parsed.requestId, dispatchActionTimeoutMs()) {
+                    onDispatchActionRequest(ActionRequest(actionId, parsed.params, parsed.requestId, paramsJson))
+                }
             }
         override fun cancelRequest(requestId: String?) {
             requestId?.let(requests::cancel)

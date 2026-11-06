@@ -5,6 +5,7 @@ import android.content.Intent
 import android.os.Binder
 import android.os.IBinder
 import android.os.Parcel
+import com.bitperfect.player.sdk.plugin.ApiLevel
 import com.bitperfect.player.sdk.plugin.IBitperfectPluginV1
 import com.bitperfect.player.sdk.plugin.IPluginHostCallbackV1
 import com.bitperfect.player.sdk.plugin.dto.ActionResultDto
@@ -38,7 +39,8 @@ abstract class BitperfectDspPlugin : Service() {
 
     abstract fun onOpenDspSession(offer: DspSessionOfferDto): DspSessionDescriptorDto?
 
-    open fun apiVersion(): Int = 7
+    // Stays below CANCEL_REQUEST: cancelRequest is a no-op here.
+    open fun apiVersion(): Int = ApiLevel.RENDERER_DEFAULT
     open fun capabilities(): Int = PluginSdk.CAPABILITY_DSP
 
     open fun onRenderPage(routeId: String, paramsJson: String?, pageToken: String?): PageDescriptorDto? = null
