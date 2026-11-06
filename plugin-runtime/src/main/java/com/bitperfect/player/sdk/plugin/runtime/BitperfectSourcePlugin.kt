@@ -27,6 +27,11 @@ import java.util.concurrent.ThreadPoolExecutor
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
 import java.util.concurrent.atomic.AtomicInteger
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.runInterruptible
 
 /** Base Service for SOURCE plugins: subclasses implement stream resolution and browsing. */
 abstract class BitperfectSourcePlugin : Service() {
@@ -53,7 +58,15 @@ abstract class BitperfectSourcePlugin : Service() {
 
     open fun onRenderPage(routeId: String, paramsJson: String?, pageToken: String?): PageDescriptorDto? = null
 
+    /** Cancellable variant; the host cancels it via cancelRequest. Defaults to [onRenderPage]. */
+    open suspend fun onRenderPageSuspend(routeId: String, paramsJson: String?, pageToken: String?): PageDescriptorDto? =
+        runInterruptible { onRenderPage(routeId, paramsJson, pageToken) }
+
     open fun onDispatchAction(actionId: String, paramsJson: String?): ActionResultDto? = null
+
+    /** Cancellable variant of [onDispatchAction]. */
+    open suspend fun onDispatchActionSuspend(actionId: String, paramsJson: String?): ActionResultDto? =
+        runInterruptible { onDispatchAction(actionId, paramsJson) }
     open fun onListRenderers(): List<RendererInfoDto> = emptyList()
     open fun onPlayOnRenderer(rendererId: String, track: TrackRefDto, hostMediaUrl: String): Boolean = false
     open fun onEnqueueNextOnRenderer(rendererId: String, track: TrackRefDto, hostMediaUrl: String): Boolean = false
@@ -68,11 +81,22 @@ abstract class BitperfectSourcePlugin : Service() {
     open fun apiVersion(): Int = PluginSdk.API_VERSION
     open fun capabilities(): Int = PluginSdk.CAPABILITY_SOURCE
 
-    open fun resolveTimeoutMs(): Long = DEFAULT_RESOLVE_TIMEOUT_MS
-    open fun browseTimeoutMs(): Long = DEFAULT_BROWSE_TIMEOUT_MS
-    open fun dispatchActionTimeoutMs(): Long = DEFAULT_DISPATCH_TIMEOUT_MS
-    open fun rendererTimeoutMs(): Long = DEFAULT_RENDERER_TIMEOUT_MS
-    open fun rendererControlTimeoutMs(): Long = DEFAULT_RENDERER_CONTROL_TIMEOUT_MS
+    /** Every deadline below reads from this policy; override it, not the individual getters. */
+    open val callPolicy: PluginCallPolicy get() = PluginCallPolicy.Default
+
+    open fun resolveTimeoutMs(): Long = callPolicy.resolveStreamMs
+    open fun browseTimeoutMs(): Long = callPolicy.browseMs
+    open fun renderPageTimeoutMs(): Long = callPolicy.renderPageMs
+    open fun dispatchActionTimeoutMs(): Long = callPolicy.dispatchActionMs
+    open fun rendererTimeoutMs(): Long = callPolicy.rendererMs
+    open fun rendererControlTimeoutMs(): Long = callPolicy.rendererControlMs
+
+    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val requests = PluginRequestRegistry(serviceScope)
+
+    /** The only runBlocking on a Binder thread; [requestId] makes the call cancellable via cancelRequest. */
+    protected fun <T> runCancellable(requestId: String?, timeoutMs: Long, block: suspend () -> T?): T? =
+        if (isDestroyed) null else requests.runCancellable(requestId, timeoutMs, block)
 
     @Volatile
     private var workerExecutor: ExecutorService? = null
@@ -147,6 +171,7 @@ abstract class BitperfectSourcePlugin : Service() {
 
     override fun onDestroy() {
         isDestroyed = true
+        serviceScope.cancel()
         try {
             workerExecutor?.let { executor ->
                 executor.shutdownNow()
@@ -205,7 +230,9 @@ abstract class BitperfectSourcePlugin : Service() {
 
         override fun renderPage(routeId: String, paramsJson: String?, pageToken: String?): PageDescriptorDto? {
             val callingUid = Binder.getCallingUid()
-            val descriptor = onRenderPage(routeId, paramsJson, pageToken) ?: return null
+            val descriptor = runCancellable(PluginRequestRegistry.requestIdOf(paramsJson), renderPageTimeoutMs()) {
+                onRenderPageSuspend(routeId, paramsJson, pageToken)
+            } ?: return null
             val supportsTiered = HostTransportNegotiator.isTieredTransportSupported(
                 context = this@BitperfectSourcePlugin,
                 paramsJson = paramsJson,
@@ -226,9 +253,12 @@ abstract class BitperfectSourcePlugin : Service() {
             }
         }
         override fun dispatchAction(actionId: String, paramsJson: String?): ActionResultDto? =
-            executeSafeguarded(dispatchActionTimeoutMs(), "dispatchAction") {
-                onDispatchAction(actionId, paramsJson)
+            runCancellable(PluginRequestRegistry.requestIdOf(paramsJson), dispatchActionTimeoutMs()) {
+                onDispatchActionSuspend(actionId, paramsJson)
             }
+        override fun cancelRequest(requestId: String?) {
+            requestId?.let(requests::cancel)
+        }
         override fun openDspSession(offer: DspSessionOfferDto?): DspSessionDescriptorDto? = null
         override fun openReceiverSession(controller: com.bitperfect.player.sdk.plugin.IHostReceiverControllerV1?): com.bitperfect.player.sdk.plugin.IPluginReceiverSessionV1? =
             controller?.let { onOpenReceiverSession(it) }
@@ -246,12 +276,4 @@ abstract class BitperfectSourcePlugin : Service() {
     }
 
     final override fun onBind(intent: Intent?): IBinder = binder
-
-    companion object {
-        const val DEFAULT_RESOLVE_TIMEOUT_MS = 20_000L
-        const val DEFAULT_BROWSE_TIMEOUT_MS = 15_000L
-        const val DEFAULT_DISPATCH_TIMEOUT_MS = 14_000L
-        const val DEFAULT_RENDERER_TIMEOUT_MS = 10_000L
-        const val DEFAULT_RENDERER_CONTROL_TIMEOUT_MS = 5_000L
-    }
 }

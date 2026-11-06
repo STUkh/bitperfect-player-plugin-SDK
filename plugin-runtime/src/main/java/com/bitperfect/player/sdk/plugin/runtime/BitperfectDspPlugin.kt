@@ -227,6 +227,7 @@ abstract class BitperfectDspPlugin : Service() {
         override fun seekRenderer(rendererId: String?, positionMs: Long): Boolean = false
         override fun setRendererVolume(rendererId: String?, volumeFraction: Float): Boolean = false
         override fun stopRenderer(rendererId: String?) = Unit
+        override fun cancelRequest(requestId: String?) = Unit
     }
 
     final override fun onBind(intent: Intent?): IBinder = binder

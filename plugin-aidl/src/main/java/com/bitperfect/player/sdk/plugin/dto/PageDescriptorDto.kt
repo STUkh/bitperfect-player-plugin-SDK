@@ -78,7 +78,6 @@ class PageDescriptorDto internal constructor(
             ""
         }
     }
-
     fun toLegacy(): PageDescriptorDto =
         if (contractVersion == baseVersion && rawJson != null) {
             this
@@ -88,6 +87,7 @@ class PageDescriptorDto internal constructor(
                 rawJson = json,
             )
         }
+
 
     override fun describeContents(): Int =
         if (pfd != null) Parcelable.CONTENTS_FILE_DESCRIPTOR else 0
@@ -133,6 +133,9 @@ class PageDescriptorDto internal constructor(
         const val INLINE_THRESHOLD_BYTES = 256 * 1024      // 256 KB (raised from 16 KB)
         const val COMPRESSION_THRESHOLD_BYTES = 512 * 1024 // 512 KB
         const val PARAM_HOST_TRANSPORT = "_bp_host_transport"
+
+        /** Host-assigned id in paramsJson; pass to cancelRequest to abort the call (API 9). */
+        const val PARAM_REQUEST_ID = "_bp_request_id"
         const val TRANSPORT_TIERED = "tiered"
 
         @JvmStatic

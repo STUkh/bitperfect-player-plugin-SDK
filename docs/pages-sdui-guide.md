@@ -142,4 +142,5 @@ To prevent resource exhaustion and keep memory footprint low:
 * **Max sections per page**: 40 sections.
 * **Max items per section**: 500 items (use pagination via `nextPageToken` for larger lists).
 * **Max inline tracks per action**: 500 tracks.
-* **Timeouts**: `onRenderPage` has a 10-second timeout; `onDispatchAction` has a 15-second timeout.
+* **Timeouts**: one policy, `PluginCallPolicy` (override `callPolicy` in your service): `renderPage` 120 s, `dispatchAction` 60 s, `resolveStream` 20 s, `browse` 60 s. The host waits the plugin limit plus 10 s.
+* **Cancellation (API 9)**: the host puts `_bp_request_id` (`PageDescriptorDto.PARAM_REQUEST_ID`) into `paramsJson` and calls `cancelRequest(id)` when the user leaves the page or the call times out. Override `onRenderPageSuspend` / `onDispatchActionSuspend` and keep work cancellable; the SDK runs them in the service scope and frees the Binder thread on cancel.

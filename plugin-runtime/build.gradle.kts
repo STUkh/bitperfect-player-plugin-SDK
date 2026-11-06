@@ -39,6 +39,7 @@ dependencies {
     api(project(":plugin-pages"))
     implementation(libs.coroutines.core)
     testImplementation(libs.junit5)
+    testImplementation(libs.coroutines.test)
     testImplementation(libs.mockk)
     testImplementation("org.json:json:20231013")
     testImplementation(libs.serialization.json)

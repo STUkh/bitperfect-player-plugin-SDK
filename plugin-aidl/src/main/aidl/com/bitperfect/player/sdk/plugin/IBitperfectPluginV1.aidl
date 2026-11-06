@@ -74,4 +74,7 @@ interface IBitperfectPluginV1 {
 
     // SOURCE: pre-resolve the next stream descriptor for gapless transition.
     @nullable StreamDescriptorDto prepareNextStream(in TrackRefDto track, int maxBitDepth, int maxSampleRate) = 22;
+
+    // PAGES (API 9): cancel the in-flight renderPage/dispatchAction tagged with this _bp_request_id.
+    oneway void cancelRequest(String requestId) = 23;
 }
