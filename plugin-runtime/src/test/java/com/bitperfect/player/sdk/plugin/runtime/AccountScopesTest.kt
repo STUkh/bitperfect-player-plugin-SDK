@@ -31,10 +31,13 @@ class AccountScopesTest {
         override fun close() { closed = true; events += "close:$userId" }
     }
 
-    private fun TestScope.scopes(legacy: () -> Unit = {}) = AccountScopes(
+    private val owner = MemoryStorageOwner()
+
+    private fun TestScope.scopes(legacy: () -> Unit = {}, owner: StorageOwner = this@AccountScopesTest.owner) = AccountScopes(
         parent = StandardTestDispatcher(testScheduler),
         factory = { id -> FakeScope(id, StandardTestDispatcher(testScheduler)).also { made[id] = it } },
-        deleteStorage = { events += "delete:$it" },
+        deleteStorage = { events += "delete" },
+        owner = owner,
         legacyCleanup = legacy,
     )
 
@@ -50,7 +53,7 @@ class AccountScopesTest {
         scopes.logout { events += "clear" }
 
         assertTrue(fill.isCancelled)
-        assertEquals(listOf("fill-finished", "close:1", "delete:1", "clear"), events)
+        assertEquals(listOf("delete", "fill-finished", "close:1", "delete", "clear"), events)
         assertNull(scopes.current.value)
     }
 
@@ -61,13 +64,14 @@ class AccountScopesTest {
             factory = { id -> object : AccountScope(id, StandardTestDispatcher(testScheduler)) {
                 override fun close() = throw IllegalStateException("boom")
             } },
-            deleteStorage = { events += "delete:$it" },
+            deleteStorage = { events += "delete" },
+            owner = owner,
         )
         scopes.open("1")
 
         scopes.logout { events += "clear"; throw IllegalStateException("clear boom") }
 
-        assertEquals(listOf("delete:1", "clear"), events)
+        assertEquals(listOf("delete", "delete", "clear"), events)
     }
 
     @Test
@@ -96,7 +100,7 @@ class AccountScopesTest {
         scopes.logout()
         assertThrows(AuthRequiredException::class.java) { scopes.require() }
 
-        val custom = AccountScopes<FakeScope>(StandardTestDispatcher(testScheduler), { error("n/a") }, {}, authRequired = { IllegalArgumentException("x") })
+        val custom = AccountScopes<FakeScope>(StandardTestDispatcher(testScheduler), { error("n/a") }, {}, MemoryStorageOwner(), authRequired = { IllegalArgumentException("x") })
         assertThrows(IllegalArgumentException::class.java) { custom.require() }
     }
 
@@ -112,14 +116,13 @@ class AccountScopesTest {
         assertNotSame(first, second)
         assertFalse(first.isActive)
         assertTrue(made.getValue("1").closed)
-        assertTrue("delete:1" in events)
-        assertFalse("delete:2" in events)
+        assertEquals(listOf("delete", "close:1", "delete", "delete"), events)
     }
 
     @Test
     fun `detach is non-blocking and legacy cleanup runs once at start`() = runTest {
         var legacy = 0
-        val scopes = scopes { legacy++ }
+        val scopes = scopes(legacy = { legacy++ })
         scopes.open("1")
         val job = scopes.detach()
 
@@ -128,5 +131,83 @@ class AccountScopesTest {
         advanceUntilIdle()
         assertTrue(job!!.isCompleted)
         assertEquals(1, legacy)
+    }
+
+    @Test
+    fun `owner mismatch wipes storage before the factory runs`() = runTest {
+        owner.write("old")
+        val scopes = scopes()
+        scopes.open("1")
+
+        assertEquals(listOf("delete"), events)
+        assertEquals("1", owner.read())
+    }
+
+    @Test
+    fun `same owner keeps storage`() = runTest {
+        owner.write("1")
+        val scopes = scopes()
+        scopes.open("1")
+
+        assertTrue(events.isEmpty())
+    }
+
+    @Test
+    fun `teardown deletes storage then writes a null owner`() = runTest {
+        val scopes = scopes()
+        scopes.open("1")
+        events.clear()
+        scopes.logout()
+
+        assertEquals(listOf("close:1", "delete"), events)
+        assertNull(owner.read())
+    }
+
+    @Test
+    fun `crash between delete and owner write still wipes on the next open`() = runTest {
+        val crashing = object : StorageOwner {
+            override fun read() = owner.read()
+            override fun write(userId: String?) = throw IllegalStateException("killed")
+        }
+        owner.write("old")
+        val crashed = runCatching { scopes(owner = crashing).open("1") }.exceptionOrNull()
+        assertTrue(crashed is IllegalStateException)
+        assertEquals(listOf("delete"), events)
+        assertEquals("old", owner.read())
+
+        // Next process: owner still mismatches, so the storage is wiped again.
+        scopes().open("1")
+        assertEquals(listOf("delete", "delete"), events)
+        assertEquals("1", owner.read())
+    }
+
+    @Test
+    fun `logout then another user leaves a single storage wiped once per change`() = runTest {
+        val scopes = scopes()
+        scopes.open("1")
+        scopes.logout()
+        scopes.open("2")
+
+        assertEquals(listOf("delete", "close:1", "delete", "delete"), events)
+        assertEquals("2", owner.read())
+    }
+
+    @Test
+    fun `legacy per-user names exclude the live database`() {
+        val names = listOf("x_1.db", "x_cache.db", "x_9.db-journal", "y_2.db", "x_a.db")
+        assertEquals(listOf("x_1.db", "x_a.db"), legacyPerUserDatabases(names, "x_", "x_cache.db"))
+    }
+
+    @Test
+    fun `file owner round trips and null deletes the file`(@org.junit.jupiter.api.io.TempDir dir: java.io.File) {
+        val o = FileStorageOwner(java.io.File(dir, "o"))
+        assertNull(o.read())
+        o.write("7")
+        assertEquals("7", o.read())
+        o.write("8")
+        assertEquals("8", o.read())
+        o.write(null)
+        assertNull(o.read())
+        assertEquals(0, dir.listFiles()!!.size)
     }
 }
